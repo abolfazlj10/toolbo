@@ -1,0 +1,79 @@
+{
+    "dataBox":[
+        {"title":"زمان" , "icon": "e90b;" , "url":"/time","item":[
+            {"title":"تاریخ امروز","sub":"ساعت و تاریخ ایران","url":"/time/date"},
+            {"title":"تقویم","sub":"تقویم خورشیدی،میلادی و قمری","url":"/time/cleander"},
+            {"title":"تبدیل تاریخ","sub":"3 نوع خورشیدی،میلادی و قمری","url":"/time/convertor"},
+            {"title":"محاسبه سن","sub":"با تاریخ خورشیدی و میلادی","url":"/time/mathAge"},
+            {"title":"اوقات شرعی","sub":"زمان اذان و ساعت های شرعی","url":"/time/religious"},
+            {"title":"تنظیم زنگ هشدار آنلاین ","sub":"تنظیم آلارم","url":"/time/alarm"},
+            {"title":"شمارش معکوس زمان","sub":"ثانیه شمار آنلاین","url":"/time/timer"},
+            {"title":"کرنومتر آنلاین","sub":"ثبت و مقایسه رکورد","url":"/time/cornometr"},
+            {"title":"محاسبه اختلاف دو تاریخ","sub":"تعداد روز و ماه و سال","url":"/time/spacingDate"}
+        ]}, 
+        {"title":"مالی" , "icon":"f0d6;" , "url":"/fiscal","item":[
+            {"title":"محاسبه سود و اقساط وام","sub":"محاسبه با فرمول جدید و قدیم","url":"/fiscal/loanInterest"},
+            {"title":"محاسبه سود سپرده","sub":"روز شمار،کوتاه مدت و بلند مدت","url":"/fiscal/Interest"},
+            {"title":"جستجوی شماره کارت بانک ها","sub":"براساس،پیش شماره کارت عابر بانک ها","url":"/fiscal/numberCard"},
+            {"title":"تبدیل تومان به ریال و برعکس","sub":"تبدیل ریال و تومان","url":"/fiscal/exchangeRial"},
+            {"title":"محاسبه سود و قسط در بازار","sub":"خرید قسطی گوشی و...","url":"/fiscal/marketProfit"}
+        ]},
+        {"title":"اعداد" , "icon":"e90c;" , "url":"/numbers","item":[
+            {"title":"محاسبه درصد","sub":"تعیین چند درصد عدد","url":"/numbers/percent"},
+            {"title":"محاسبه افزایش درصد","sub":"درصد افزایش حقوق و...","url":"/numbers/increasePercent"},
+            {"title":"محاسبه کاهش درصد","sub":"درصد کاهش عدد و...","url":"/numbers/decreasePercent"},
+            {"title":"محاسبه تغییر درصد","sub":"تغییر درصد دو عدد","url":"/numbers/changePercent"},
+            {"title":"محاسبه درصد خطا","sub":"درصد خطا دو عدد","url":"/numbers/errPercent"},
+            {"title":"تولید اعداد تصادفی","sub":"با تعیین محدوده اعداد","url":"/numbers/randomNumber"},
+            {"title":"تبدیل اعداد","sub":"تبدیل اعداد فارسی به انگلیسی و برعکس","url":"/numbers/exchangeNumber"},
+            {"title":"تبدیل عدد به حروف فارسی","sub":"تبدیل عدد به حرف فارسی","url":"/numbers/numberToString"},
+            {"title":"تبدیل عدد به حروف انگلیسی","sub":"تبدیل عدد به حرف انگلیسی","url":"/numbers/numberToStringEN"}
+        ]}, 
+        {"title":"تبدیل ها" , "icon":"e909;" , "url":"/conversions","item":[
+            {"title":"تبدیل وزن","sub":"تبدیل کیلوگرم ، پوند و... به سایر واحدها","url":"/conversions/convert-weight"},
+            {"title":"تبدیل طول","sub":"تبدیل متر ، سانتیمتر و... به سایر واحدها","url":"/conversions/convert-length"},
+            {"title":"تبدیل دما","sub":"تبدیل سلسیوس  و... به سایر واحدها","url":"/conversions/convert-temperature"},
+            {"title":"تبدیل سرعت","sub":"تبدیل متر بر ثانیه و... به سایر واحدها","url":"/conversions/convert-speed"},
+            {"title":"تبدیل زمان","sub":"تبدیل ساعت ، دقیقه و... به سایر واحدها","url":"/conversions/convert-time"}
+        ]},
+        {"title":"سلامت" , "icon":"f21e;" , "url":"/health","item":[
+            {"title":"محاسبه BMI","sub":"شاخص توده بدن","url":"/health/BMI"},
+            {"title":"محاسبه BMR","sub":"کالری مورد نیاز روزانه بدن","url":"/health/BMR"}
+        ]}, 
+        {"title":"ریاضی" , "icon":"e99b;" , "url":"/math","item":[
+            {"title":"محاسبه معادله درجه یک","sub":"معادله خطی درجه اول","url":"/math/first-linear-equation"},
+            {"title":"محاسبه میانگین","sub":"میانگین چندین عدد","url":"/math/average"},
+            {"title":"محاسبه فاکتور","sub":"فاکتورهای یک عدد","url":"/math/factor"},
+            {"title":"محاسبه توان","sub":"توان عدد اعشاری و ...","url":"/math/pow"},
+            {"title":"محاسبه جذر","sub":"نمایش جذر یک عدد","url":"/math/sqrt"},
+            {"title":"محاسبه لگاریتم","sub":"نمایش لگاریتم عدد","url":"/math/legarithm"},
+            {"title":"تشخیص عدد اول","sub":"تعیین اول بودن عدد","url":"/math/prime-number"},
+            {"title":"محاسبه محیط و..مستطیل","sub":"براساس طول و عرض","url":"/math/rectangle"},
+            {"title":"محاسبه محیط و..مربع","sub":"براساس طول یک ضلع","url":"/math/square"}
+        ]}, 
+        {"title":"فناوری" , "icon":"e90a;" , "url":"/technology","item":[
+            {"title":"تولید پسورد تصادفی","sub":"شامل عدد، حروف و کاراکترهای خاص","url":"/technology/password-random"},
+            {"title":"IP آی پی من چیست ؟","sub":"نمایش IP و اطلاعات دیگر","url":"/technology/MyIP"},
+            {"title":"تبدیل تایم استمپ","sub":"به تاریخ خورشیدی و میلادی","url":"/technology/TimeStamp"},
+            {"title":"تبدیل باینری به متن","sub":" تبدیل متن به باینری","url":"/technology/binary"}
+        ]}, 
+        {"title":"متن" , "icon":"e906;" , "url":"/text","item":[
+            {"title":"تبدیل حروف انگلیسی","sub":"تبدیل به حروف کوچک، بزرگ و...","url":"/text/convert-word"},
+            {"title":"تولید متن تصادفی لورم ایپسوم","sub":"به زبان فارسی، انگلیسی، ایتالیایی و...","url":"/text/Lorem"},
+            {"title":"شمارش تعداد کلمه","sub":"شمارش تعداد کلمه، کاراکتر و...","url":"/text/counter-word"}
+        ]}, 
+        {"title":"سایر" , "icon":"e90d;" , "url":"/other","item":[
+            {"title":"محاسبه مصرف بنزین خودرو","sub":"براساس مسافت طی شده و میزان بنزین","url":"/other/fuel"}, 
+            {"title":"محاسبه مصرف سیگار","sub":"هزینه هفتگی و... مصرف سیگار","url":"/other/smoking"},
+            {"title":"جستجو کد ملی شهر ها","sub":"براساس پیش شماره ملی یا نام شهر","url":"/other/national-number"},
+            {"title":"محاسبه نمره آزمون IELTS","sub":"براساس ۴ مهارت","url":"/other/ielts-score"}
+        ]}
+    ],
+    "recomendend":[
+        {"title":"ماشین حساب" , "icon": "e908;" , "url":"https://github.com/abolfazlj10/calculator" , "info":"calculator"},
+        {"title":"تودو لیست" , "icon": "e90e;" , "url":"https://github.com/abolfazlj10/todo-List" , "info":"todos list"},
+        {"title":"اپلیکیشن هواشناسی" , "icon": "e910;" , "url":"https://github.com/abolfazlj10/WeatherApp" , "info":"weather app"},
+        {"title":"تیک تاک تو" , "icon": "e907;" , "url":"https://github.com/abolfazlj10/TicTacToe" , "info":"tic tac toe"},
+        {"title":"پسورد ساز" , "icon": "e90f;" , "url":"https://github.com/abolfazlj10/CPass" , "info":"CPass"}
+    ]
+}
