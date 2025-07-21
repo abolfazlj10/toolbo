@@ -76,6 +76,7 @@ export default {
 }
 .C{
     margin-bottom: 56px !important;
+    overflow-x:hidden;
 }
 .TS{/* title section*/
     margin-top: 10px;
