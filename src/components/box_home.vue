@@ -35,7 +35,8 @@ export default {
 </template>
 <style scoped>
 .box_h{
-    background-color: #FFFFFF;
+    background-color: #ffffff8f;
+    backdrop-filter: blur(20px);
     color:#334155;
     height: 128px;
     padding: 18px 0;
@@ -49,7 +50,8 @@ export default {
     transition: all .3s ease-in-out;
 }
 .box_h_D{
-    background-color: #0e2338;
+    background-color: #0e2338cf;
+    backdrop-filter: blur(20px);
     color: #ffffff;
 }
 .iconBox{

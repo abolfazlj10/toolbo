@@ -20,7 +20,8 @@ export default {
 </template>
 <style scoped>
 .boxUsage{
-    background-color: #FFFFFF;
+    background-color: #ffffff73;
+    backdrop-filter: blur(20px);
     padding: 24px 10px;
     display: flex;
     flex-direction: column;
@@ -33,7 +34,8 @@ export default {
     text-align: center;
 }
 .boxUsage_D{
-    background-color:#0c243f;
+    background-color: #0e2338cf;
+    backdrop-filter: blur(20px);
 }
 .boxUsage:hover{
     box-shadow: 10px 5px 15px 10px rgb(0 0 0 / 16%), 0 2px 10px 0 rgb(0 0 0 / 12%);
@@ -47,7 +49,9 @@ export default {
 }
 .hoverBox{
     position: absolute;
-    background-color: #3b82f6;
+    /* background: linear-gradient(to right bottom ,#3b82f6,#2570eb); */
+    background: linear-gradient(to right bottom ,#609afa,#1e55af);
+    backdrop-filter: blur(20px);
     top: 0;
     left: 0;
     width: 100%;

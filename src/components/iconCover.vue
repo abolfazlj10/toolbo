@@ -21,26 +21,29 @@ export default{
   color:#3b83f688;
 }
 .IC_D{
-	color:#3b83f688;
+	color:#6899c8;
 }
 .ic1{
   top: 70%;
   left: 3%;
-  opacity: .1;
+  opacity: .9;
+  /* filter:blur(1px); */
   transform: rotate(20deg);
   animation: icon 25s ease-in-out 0s infinite normal none;
 }
 .ic2{
   bottom: 60%;
   right: 10%;
-  opacity: .1;
+  opacity: .9;
+  /* filter:blur(1px); */
   transform: rotate(50deg);
   animation: rot 30s ease-in-out 0s infinite normal none;
 }
 .ic3{
   bottom: 60%;
   right: 80%;
-  opacity: .1;
+  opacity: .9;
+  /* filter:blur(1px); */
   font-size: 150px;
   animation: iconCustom 25s ease-in-out 0s infinite normal none;
 }

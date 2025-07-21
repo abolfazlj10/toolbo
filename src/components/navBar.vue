@@ -150,7 +150,7 @@ export default{
                         <router-link v-for="item in dbSearcher.child" :title="item.sub" :to="item.url" class="S_Item">
                             <div class="S_Item_T">{{ item.title }}</div>
                             <div class="S_Item_S" :class="dark ? 'S_Item_SD' : ''">{{ item.sub }}</div>                            
-                        </router-link>
+                        </router-link> 
                         <a v-for="item in dbSearcher.recumended" target="_blank" :title="item.info" :href="item.url" class="S_Item">
                             <div class="S_Item_T">{{ item.title }}</div>                            
                             <div class="S_Item_S" :class="dark ? 'S_Item_SD' : ''">{{ item.info }} </div>                            
@@ -211,6 +211,7 @@ export default{
 }
 .N_C{ /* nav center */
     background-color: #ffffff;
+    /* backdrop-filter: blur(20px); */
     display: grid;
     grid-template-columns: 1fr 12fr 2fr;
     align-items: center;
@@ -221,9 +222,11 @@ export default{
 }
 .N_C_D{
     background-color: #0e2338;
+    /* backdrop-filter: blur(20px); */
 }
 .N_B{ /* nav bottom */
     background-color:#d2d6de;
+    /* backdrop-filter: blur(20px); */
     color:#334155;
     width: 92%;
     margin:auto;
@@ -246,6 +249,7 @@ export default{
 }
 .N_B_D{
     background-color: #0c243f;
+    /* backdrop-filter: blur(20px); */
     color:#ffffff;
 }
 .N_B_D > *:hover{
