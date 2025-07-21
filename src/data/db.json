@@ -70,10 +70,10 @@
         ]}
     ],
     "recomendend":[
-        {"title":"ماشین حساب" , "icon": "e908;" , "url":"https://github.com/abolfazlj10/calculator" , "info":"calculator"},
-        {"title":"تودو لیست" , "icon": "e90e;" , "url":"https://github.com/abolfazlj10/todo-List" , "info":"todos list"},
-        {"title":"اپلیکیشن هواشناسی" , "icon": "e910;" , "url":"https://github.com/abolfazlj10/WeatherApp" , "info":"weather app"},
-        {"title":"تیک تاک تو" , "icon": "e907;" , "url":"https://github.com/abolfazlj10/TicTacToe" , "info":"tic tac toe"},
-        {"title":"پسورد ساز" , "icon": "e90f;" , "url":"https://github.com/abolfazlj10/CPass" , "info":"CPass"}
+        {"title":"ماشین حساب" , "icon": "e908;" , "url":"https://calculator-five-lime-64.vercel.app/" , "info":"calculator"},
+        {"title":"تودو لیست" , "icon": "e90e;" , "url":"https://todolist-pearl-eight.vercel.app/" , "info":"todos list"},
+        {"title":"اپلیکیشن هواشناسی" , "icon": "e910;" , "url":"https://weatherapp-drab-eight.vercel.app/" , "info":"weather app"},
+        {"title":"تیک تاک تو" , "icon": "e907;" , "url":"https://tictoctoe-sable.vercel.app/" , "info":"tic tac toe"},
+        {"title":"پسورد ساز" , "icon": "e90f;" , "url":"https://create-pass.vercel.app/" , "info":"CPass"}
     ]
 }
