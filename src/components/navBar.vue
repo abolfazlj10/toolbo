@@ -181,7 +181,7 @@ export default{
                 </div>
                 <div class="CP" @click="GoScrool">کاربردی</div>
                 <div class="CP" @click="GoScrool('rec')">پیشنهادی</div>
-                <a href="https://expersian.ir/" target="_blank">درباره ما</a>
+                <a href="https://j10-mi9b.vercel.app/" target="_blank">درباره من</a>
             </div>
         </div>
     </div>
