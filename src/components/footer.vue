@@ -58,10 +58,8 @@ export default {
             <div class="CIS">
                 <a style="color:#2AABEE ;" href="http://t.me/abolfazl_j10" target="_blank" class="icon">&#xea95;</a>
                 <a href="http://github.com/abolfazlj10" target="_blank" class="icon">&#xeab0;</a>
-                <a style="color:#00acee ;" href="http://twitter.com/abolfazl_j10" target="_blank" class="icon">&#xea96;</a>
                 <a style="color:#0A66C2;" href="http://linkedin.com/in/abolfazljamshidi/" target="_blank" class="icon">&#xf0e1;</a>
-                <a style="color:#E1306C;" href="http://instagram.com/abolfazl_j10" target="_blank" class="icon">&#xea92;</a>
-                <a style="color:#FF5733;" href="mailto: abolfazljamshidi101010@gmail.com" target="_blank" class="icon">&#xe903;</a>
+                <a style="color:#FF5733;" href="mailto: abolfazl.j.dev@gmail.com" target="_blank" class="icon">&#xe903;</a>
             </div>
         </div>
     </div>
