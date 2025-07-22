@@ -16,7 +16,7 @@ export default {
 }
 </script>
 <template>
-    <RouterLink :title="title +' | '+ lengthTool.length+firstTxtTools" :to="link" v-if="lengthTool != undefined" class="container_box">
+    <RouterLink :to="link" v-if="lengthTool != undefined" class="container_box">
         <div class="box_h" :class="dark ?'box_h_D':''">
             <div class="iconBox fontIconNew" :class="dark ?'iconBox_D':''" v-html="s+icon"></div>
             <div class="notifi"></div>

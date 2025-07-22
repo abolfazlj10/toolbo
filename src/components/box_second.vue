@@ -10,7 +10,7 @@ export default {
 }
 </script>
 <template>
-<routerLink :title="subTitle + ' | ' + title" :to="url" class="cUsage">
+<routerLink :to="url" class="cUsage">
     <div class="boxUsage" :class="dark ? 'boxUsage_D' : ''">
         <div class="hoverBox"></div>
         <div class="title" :class="dark ? 'title_D' : ''">{{title}}</div>
