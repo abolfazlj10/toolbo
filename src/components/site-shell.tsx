@@ -1,130 +1,191 @@
 "use client";
 
-import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
-import { useMemo, useState, type ReactNode } from "react";
-import {
-  ExternalLink,
-  Menu,
-  Moon,
-  Search,
-  Star,
-  Sun,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import Link from "next/link";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFavorites } from "@/components/favorites-provider";
 import { useTheme } from "@/components/theme-provider";
 import { categories, getSearchResults } from "@/lib/tool-data";
+import { cn } from "@/lib/utils";
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="site-shell">
       <SiteHeader />
-      <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {children}
-      </main>
+      <main>{children}</main>
       <SiteFooter />
     </div>
   );
 }
 
 function SiteHeader() {
-  const pathname = usePathname();
   const { isDark, toggleTheme } = useTheme();
   const { favorites } = useFavorites();
   const [search, setSearch] = useState("");
+  const [showTools, setShowTools] = useState(false);
+  const [showFavorites, setShowFavorites] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [fixedNav, setFixedNav] = useState(false);
+  const [containerNav, setContainerNav] = useState(true);
   const results = useMemo(() => getSearchResults(search), [search]);
   const hasResults =
     results.categories.length > 0 ||
     results.tools.length > 0 ||
     results.recommended.length > 0;
 
+  useEffect(() => {
+    const updateNavState = () => {
+      setFixedNav(
+        window.innerWidth > 1000 && document.documentElement.scrollTop >= 170
+      );
+      setContainerNav(window.innerWidth > 900);
+    };
+
+    updateNavState();
+    window.addEventListener("resize", updateNavState);
+    window.addEventListener("scroll", updateNavState);
+
+    return () => {
+      window.removeEventListener("resize", updateNavState);
+      window.removeEventListener("scroll", updateNavState);
+    };
+  }, []);
+
   return (
-    <header className="border-b bg-card/80 backdrop-blur">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="flex min-w-0 items-center gap-3 rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            aria-label="تولبو"
-          >
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-md border bg-background">
-              <Image src="/ToolBo.png" alt="" width={34} height={34} priority />
-            </span>
-            <span className="hidden leading-none sm:block">
-              <span className="block text-xl font-bold tracking-normal">
-                TOOLBO
-              </span>
-              <span className="text-xs text-muted-foreground">تولبو</span>
-            </span>
+    <div className={containerNav ? "container_m" : ""}>
+      <div className="nav" id="top">
+        <Link className="SB" href="/" title="تولبو" aria-label="تولبو">
+          <div className={cn("N_T", isDark && "N_C_D")}>
+            <Image src="/ToolBo.png" alt="icon brand" width={45} height={45} priority />
+          </div>
+        </Link>
+
+        <div className={cn("N_C", isDark && "N_C_D")}>
+          <Link href="/" title="تولبو">
+            <h1 className="B">TOOLBO</h1>
           </Link>
 
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
+          <div className="S">
+            <input
+              className={cn("S_I", isDark && "S_I_D")}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               type="search"
+              name="searchTool"
               placeholder="دنبال چی میگردی..."
-              className="h-10 pe-9 text-right"
             />
             {search.trim().length > 1 && (
               <SearchPanel
                 hasResults={hasResults}
                 results={results}
+                isDark={isDark}
                 onSelect={() => setSearch("")}
               />
             )}
           </div>
 
-          <Button
+          <button
             type="button"
-            variant="outline"
-            size="icon-lg"
             onClick={toggleTheme}
-            aria-label={isDark ? "روشن" : "تیره"}
+            className={cn("T", isDark && "TD")}
+            title={isDark ? "تیره" : "روشن"}
+            aria-label={isDark ? "تیره" : "روشن"}
           >
-            {isDark ? <Sun /> : <Moon />}
-          </Button>
-
-          <FavoritesSheet count={favorites.length} />
-          <MobileMenu />
+            <span className="TI fontIconNew">&#xe900;</span>
+            <span className="TI fontIconNew">&#xe901;</span>
+            <span className={cn("MT", isDark && "MTD")} />
+          </button>
         </div>
 
-        <nav className="hidden items-center gap-2 overflow-x-auto pb-1 md:flex">
-          {categories.map((category) => (
-            <Button
-              key={category.url}
-              asChild
-              variant={pathname === category.url ? "secondary" : "ghost"}
-              size="sm"
-            >
-              <Link href={category.url}>{category.title}</Link>
-            </Button>
-          ))}
-          <Separator orientation="vertical" className="mx-1 h-5" />
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/#toolsUsage">کاربردی</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/#toolsRecommended">پیشنهادی</Link>
-          </Button>
-        </nav>
+        <div className={cn("N_B", fixedNav && "fixNav container_m", isDark && "N_B_D")}>
+          <div
+            className="N_B_OM"
+            onMouseEnter={() => setShowTools(true)}
+            onMouseLeave={() => {
+              setShowTools(false);
+              setActiveCategory(null);
+            }}
+          >
+            <span>دسته بندی ها</span>
+            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
+              &#xe902;
+            </span>
+            {showTools && (
+              <div className={cn("MD showBox", isDark && "MD_D")}>
+                {categories.map((category, index) => (
+                  <div
+                    key={category.url}
+                    className={cn("MD_I", isDark && "MD_ID")}
+                    onMouseEnter={() => setActiveCategory(category.url)}
+                    onFocus={() => setActiveCategory(category.url)}
+                  >
+                    <Link
+                      className="MD_I_T"
+                      href={category.url}
+                      title={`${category.item.length} ابزار محاسباتی`}
+                    >
+                      {category.title}
+                    </Link>
+                    <span className="fontIconNew MD_I_I">&#xe903;</span>
+                    {activeCategory === category.url && (
+                      <div className={cn("MD_I_D", isDark && "MD_I_D_D")}>
+                        {categories[index].item.map((tool) => (
+                          <Link key={tool.url} href={tool.url} title={tool.sub}>
+                            <div className={cn("MD_I_D_I", isDark && "MD_I_D_I_D")}>
+                              {tool.title}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            className="N_B_OM"
+            onMouseEnter={() => setShowFavorites(true)}
+            onMouseLeave={() => setShowFavorites(false)}
+          >
+            <span>مورد علاقه</span>
+            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
+              &#xe902;
+            </span>
+            {showFavorites && (
+              <div className={cn("MDF showBox", isDark && "MDF_D")}>
+                {favorites.length === 0 && <div className="MD_IFDI">خالی</div>}
+                {favorites.map((item) => (
+                  <Link
+                    key={item.url}
+                    href={item.url}
+                    title={item.sub}
+                    className={cn("MD_IF", isDark && "MD_IFD")}
+                  >
+                    <span className="MD_I_T">{item.title}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button type="button" className="CP" onClick={() => scrollOrNavigate("toolsUsage")}>
+            کاربردی
+          </button>
+          <button
+            type="button"
+            className="CP"
+            onClick={() => scrollOrNavigate("toolsRecomendend")}
+          >
+            پیشنهادی
+          </button>
+          <a href="https://j10-mi9b.vercel.app/" target="_blank" rel="noreferrer">
+            درباره من
+          </a>
+        </div>
       </div>
-    </header>
+    </div>
   );
 }
 
@@ -133,59 +194,58 @@ type SearchResults = ReturnType<typeof getSearchResults>;
 function SearchPanel({
   hasResults,
   results,
+  isDark,
   onSelect,
 }: {
   hasResults: boolean;
   results: SearchResults;
+  isDark: boolean;
   onSelect: () => void;
 }) {
+  if (!hasResults) {
+    return (
+      <div className={cn("S_Box S_Box_NotF", isDark && "S_Box_D")}>
+        پیدا نکردیم که ... :(
+      </div>
+    );
+  }
+
   return (
-    <div className="absolute left-0 right-0 top-12 z-40 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-lg">
-      <ScrollArea className="max-h-96">
-        <div className="space-y-1 p-2">
-          {!hasResults && (
-            <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-              پیدا نکردیم که ...
-            </div>
-          )}
-          {results.categories.map((item) => (
-            <SearchLink
-              key={item.url}
-              href={item.url}
-              title={item.title}
-              subtitle={`${item.item.length} ابزار محاسباتی`}
-              onSelect={onSelect}
-            />
-          ))}
-          {results.tools.map((item) => (
-            <SearchLink
-              key={item.url}
-              href={item.url}
-              title={item.title}
-              subtitle={item.sub}
-              onSelect={onSelect}
-            />
-          ))}
-          {results.recommended.map((item) => (
-            <a
-              key={item.url}
-              href={item.url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={onSelect}
-              className="flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent"
-            >
-              <span>
-                <span className="block font-medium">{item.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.info}
-                </span>
-              </span>
-              <ExternalLink className="size-4 text-muted-foreground" />
-            </a>
-          ))}
-        </div>
-      </ScrollArea>
+    <div className={cn("S_Box", isDark && "S_Box_D")}>
+      {results.categories.map((item) => (
+        <SearchLink
+          key={item.url}
+          href={item.url}
+          title={item.title}
+          subtitle={`${item.item.length} ابزار محاسباتی`}
+          isDark={isDark}
+          onSelect={onSelect}
+        />
+      ))}
+      {results.tools.map((item) => (
+        <SearchLink
+          key={item.url}
+          href={item.url}
+          title={item.title}
+          subtitle={item.sub}
+          isDark={isDark}
+          onSelect={onSelect}
+        />
+      ))}
+      {results.recommended.map((item) => (
+        <a
+          key={item.url}
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          title={item.info}
+          onClick={onSelect}
+          className="S_Item"
+        >
+          <span className="S_Item_T">{item.title}</span>
+          <span className={cn("S_Item_S", isDark && "S_Item_SD")}>{item.info}</span>
+        </a>
+      ))}
     </div>
   );
 }
@@ -194,122 +254,126 @@ function SearchLink({
   href,
   title,
   subtitle,
+  isDark,
   onSelect,
 }: {
   href: string;
   title: string;
   subtitle: string;
+  isDark: boolean;
   onSelect: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      onClick={onSelect}
-      className="block rounded-md px-3 py-2 text-sm outline-none transition-colors hover:bg-accent focus-visible:bg-accent"
-    >
-      <span className="block font-medium">{title}</span>
-      <span className="text-xs text-muted-foreground">{subtitle}</span>
+    <Link href={href} title={subtitle} onClick={onSelect} className="S_Item">
+      <span className="S_Item_T">{title}</span>
+      <span className={cn("S_Item_S", isDark && "S_Item_SD")}>{subtitle}</span>
     </Link>
   );
 }
 
-function FavoritesSheet({ count }: { count: number }) {
-  const { favorites } = useFavorites();
-
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button type="button" variant="outline" size="icon-lg" aria-label="مورد علاقه">
-          <Star />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-80">
-        <SheetHeader>
-          <SheetTitle>مورد علاقه</SheetTitle>
-          <SheetDescription>{count} ابزار ذخیره شده</SheetDescription>
-        </SheetHeader>
-        <div className="px-4">
-          <Separator />
-        </div>
-        <ScrollArea className="min-h-0 flex-1 px-4">
-          <div className="space-y-2 py-4">
-            {favorites.length === 0 && (
-              <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                خالی
-              </div>
-            )}
-            {favorites.map((item) => (
-              <Link
-                key={item.url}
-                href={item.url}
-                className="block rounded-md border bg-card p-3 text-sm transition-colors hover:bg-accent"
-              >
-                <span className="block font-medium">{item.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {item.sub}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function MobileMenu() {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon-lg"
-          className="md:hidden"
-          aria-label="منو"
-        >
-          <Menu />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="right" className="w-80">
-        <SheetHeader>
-          <SheetTitle>دسته بندی ها</SheetTitle>
-          <SheetDescription>ToolBo</SheetDescription>
-        </SheetHeader>
-        <ScrollArea className="min-h-0 flex-1 px-4">
-          <div className="space-y-2 py-4">
-            {categories.map((category) => (
-              <Link
-                key={category.url}
-                href={category.url}
-                className="flex items-center justify-between rounded-md border bg-card p-3 text-sm transition-colors hover:bg-accent"
-              >
-                <span className="font-medium">{category.title}</span>
-                <Badge variant="secondary">{category.item.length}</Badge>
-              </Link>
-            ))}
-          </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 function SiteFooter() {
+  const { isDark } = useTheme();
+
   return (
-    <footer className="border-t bg-card/60">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 px-4 py-6 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-        <span>ToolBo</span>
-        <a
-          href="https://j10-mi9b.vercel.app/"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex items-center gap-1 transition-colors hover:text-foreground"
-        >
-          درباره من
-          <ExternalLink className="size-3.5" />
-        </a>
+    <footer className="footer">
+      <button
+        type="button"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        title="بالا رفتن"
+        className={cn("UP fontIconNew CP", isDark && "UP_D")}
+      >
+        &#xf077;
+      </button>
+      <div className="BC">
+        <div className="TB">
+          <div className="TBR">
+            <Link href="/">
+              <Image className="TBRI" src="/ToolBo.png" alt="icon brand" width={40} height={40} />
+            </Link>
+            <div className="TBRV">v 3.0.0</div>
+          </div>
+          <div className="TBC">
+            اپلیکیشن تولبو جهت صرفه جویی در زمان کارهای روزمره با توسعه ابزار های
+            کاربردی ایجاد شده است و میتوانید با انتخاب ابزار مورد نظر از آن استفاده
+            کنید.
+          </div>
+          <div className="TBL">
+            <button type="button" className="CP" onClick={() => scrollOrNavigate("toolsUsage")}>
+              کاربردی
+            </button>
+            <button
+              type="button"
+              className="CP"
+              onClick={() => scrollOrNavigate("toolsRecomendend")}
+            >
+              پیشنهادی
+            </button>
+            <a href="https://j10-mi9b.vercel.app/" className="AF" target="_blank" rel="noreferrer">
+              درباره من
+            </a>
+          </div>
+        </div>
+        <div className="LC" />
+        <div className="BD">
+          <div>
+            <Link href="/" title="تولبو">
+              <h1 className="B">TOOLBO</h1>
+            </Link>
+          </div>
+          <div title="ابوالفضل جمشیدی نژاد">توسعه داده شده توسط ابوالفضل جمشیدی نژاد</div>
+        </div>
+        <div className="BB">
+          <h1 className="B">TOOLBO</h1>
+        </div>
+        <div className="CIS">
+          <a
+            style={{ color: "#2AABEE" }}
+            href="http://t.me/abolfazl_j10"
+            target="_blank"
+            rel="noreferrer"
+            className="icon"
+            aria-label="Telegram"
+            dangerouslySetInnerHTML={{ __html: "&#xea95;" }}
+          />
+          <a
+            href="http://github.com/abolfazlj10"
+            target="_blank"
+            rel="noreferrer"
+            className="icon"
+            aria-label="GitHub"
+            dangerouslySetInnerHTML={{ __html: "&#xeab0;" }}
+          />
+          <a
+            style={{ color: "#0A66C2" }}
+            href="http://linkedin.com/in/abolfazljamshidi/"
+            target="_blank"
+            rel="noreferrer"
+            className="icon"
+            aria-label="LinkedIn"
+            dangerouslySetInnerHTML={{ __html: "&#xf0e1;" }}
+          />
+          <a
+            style={{ color: "#FF5733" }}
+            href="mailto:abolfazl.j.dev@gmail.com"
+            target="_blank"
+            rel="noreferrer"
+            className="icon"
+            aria-label="Email"
+            dangerouslySetInnerHTML={{ __html: "&#xe903;" }}
+          />
+        </div>
       </div>
     </footer>
   );
+}
+
+function scrollOrNavigate(id: string) {
+  const target = document.getElementById(id);
+
+  if (target) {
+    target.scrollIntoView();
+    return;
+  }
+
+  window.location.href = `/#${id}`;
 }

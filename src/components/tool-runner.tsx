@@ -9,13 +9,8 @@ import {
   RotateCcw,
   Star,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -27,7 +22,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useFavorites } from "@/components/favorites-provider";
-import type { ToolWithCategory } from "@/lib/tool-data";
+import { ToolCard } from "@/components/tool-card";
+import { useTheme } from "@/components/theme-provider";
+import { categories, type ToolWithCategory } from "@/lib/tool-data";
+import { cn } from "@/lib/utils";
 import { unitGroups, type UnitGroupId, convertUnit } from "@/lib/unit-conversions";
 import {
   buildJalaaliMonth,
@@ -586,35 +584,70 @@ const calculators: Record<string, CalculatorDefinition> = {
 
 export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isDark } = useTheme();
   const favorite = isFavorite(tool.url);
+  const related =
+    categories
+      .find((category) => category.url === tool.categoryUrl)
+      ?.item.filter((item) => item.url !== tool.url)
+      .slice(0, 3) ?? [];
 
   return (
-    <div className="space-y-5">
-      <header className="rounded-md border bg-card p-5">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">
-                <Link href={tool.categoryUrl}>{tool.categoryTitle}</Link>
-              </Badge>
-              <Badge variant="outline">{tool.url}</Badge>
-            </div>
-            <h1 className="text-2xl font-bold">{tool.title}</h1>
-            <p className="text-sm text-muted-foreground">{tool.sub}</p>
+    <>
+      <div className="container_m">
+        <div className="titleBox">
+          <div className="title">{tool.title}</div>
+          <div className="location">
+            <div className="fontIcon">&#xe904;</div>
+            <Link href="/">خانه</Link>
+            <div className="slash">/</div>
+            <Link href={tool.categoryUrl}>{tool.categoryTitle}</Link>
+            <div className="slash">/</div>
+            <Link href={tool.url}>{tool.title}</Link>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => toggleFavorite(tool)}
-          >
-            <Star className={favorite ? "fill-primary text-primary" : ""} />
-            {favorite ? "ذخیره شده" : "مورد علاقه"}
-          </Button>
         </div>
-      </header>
+      </div>
 
-      {renderTool(tool)}
-    </div>
+      <div className="container_m">
+        <div className="c_tools">
+          <section className={cn("tool", isDark && "tool_D")}>
+            <div className="title_tool">{tool.title}</div>
+            <div className="tool_content">{renderTool(tool)}</div>
+          </section>
+
+          <aside className="side">
+            <div className={cn("info", isDark && "info_D")}>
+              <div>
+                <span className="fontIcon IH">&#xe914;</span>
+                در صورتی که این ابزار برای شما کاربردی بوده است میتوانید از طریق
+                دکمه زیر آن را به ابزار های کاربردی اضافه کنید.
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleFavorite(tool)}
+                className={cn("btnAdd", favorite && "btnAdd_A")}
+              >
+                <Star size={14} fill={favorite ? "currentColor" : "none"} />
+                {favorite ? "حذف کردن" : "اضافه کردن"}
+              </button>
+            </div>
+          </aside>
+
+          {related.length > 0 && (
+            <section className="tool-related">
+              <div className={cn("headingTU", isDark && "headingTU_D")}>
+                ابزار های مرتبط
+              </div>
+              <div className="containerTU">
+                {related.map((item) => (
+                  <ToolCard key={item.url} tool={item} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -691,13 +724,12 @@ function CalculatorTool({ definition }: { definition: CalculatorDefinition }) {
   return (
     <ToolCardShell>
       <form
-        className="space-y-4"
         onSubmit={(event) => {
           event.preventDefault();
           setResult(definition.calculate(values));
         }}
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="tool-field-grid">
           {definition.fields.map((field) => (
             <FieldControl
               key={field.name}
@@ -710,7 +742,10 @@ function CalculatorTool({ definition }: { definition: CalculatorDefinition }) {
             />
           ))}
         </div>
-        <Button type="submit">محاسبه</Button>
+        <Button type="submit" className="bn632-hover">
+          <span className="fontIcon">&#xe906;</span>
+          محاسبه
+        </Button>
       </form>
       <ResultBox result={result} />
     </ToolCardShell>
@@ -727,11 +762,11 @@ function FieldControl({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className={field.kind === "textarea" ? "md:col-span-2" : ""}>
+    <div className={cn("toolbo-field", field.kind === "textarea" && "md:col-span-2")}>
       <Label className="mb-2 block">{field.label}</Label>
       {field.kind === "select" ? (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="h-10 w-full">
+          <SelectTrigger className="tool-input h-10 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -748,7 +783,7 @@ function FieldControl({
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
           dir={field.dir}
-          className="min-h-36"
+          className="tool-input min-h-36"
         />
       ) : (
         <Input
@@ -756,6 +791,7 @@ function FieldControl({
           inputMode={field.kind === "text" ? "text" : "decimal"}
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
+          className="tool-input"
         />
       )}
     </div>
@@ -769,20 +805,23 @@ function ResultBox({
   result: ResultLine[] | string | null;
   tone?: "default" | "muted";
 }) {
+  const { isDark } = useTheme();
+
   if (!result) return null;
 
   return (
-    <div className="mt-5 rounded-md border bg-muted/40 p-4">
+    <div className={cn("Result", isDark && "Result_D")}>
+      <div className="title_tool">نتیجه</div>
       {typeof result === "string" ? (
-        <p className={tone === "muted" ? "text-muted-foreground" : ""}>
+        <p className={cn("textResult", tone === "muted" && "opacity-75")}>
           {result}
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="result-grid">
           {result.map((line) => (
-            <div key={line.label} className="rounded-md bg-background p-3">
-              <div className="text-xs text-muted-foreground">{line.label}</div>
-              <div className="mt-1 font-semibold">{line.value}</div>
+            <div key={line.label} className="result-item">
+              <div className="result-label">{line.label}</div>
+              <div className="result-value">{line.value}</div>
             </div>
           ))}
         </div>
@@ -792,11 +831,7 @@ function ResultBox({
 }
 
 function ToolCardShell({ children }: { children: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="pt-0">{children}</CardContent>
-    </Card>
-  );
+  return <div>{children}</div>;
 }
 
 function ConversionTool({ url }: { url: string }) {
@@ -820,10 +855,14 @@ function ConversionTool({ url }: { url: string }) {
 
   return (
     <ToolCardShell>
-      <div className="grid gap-4 md:grid-cols-3">
-        <div>
+      <div className="tool-field-grid">
+        <div className="toolbo-field">
           <Label className="mb-2 block">مقدار</Label>
-          <Input value={amount} onChange={(event) => setAmount(event.target.value)} />
+          <Input
+            value={amount}
+            onChange={(event) => setAmount(event.target.value)}
+            className="tool-input"
+          />
         </div>
         <UnitSelect label="از" units={units} value={from} onChange={setFrom} />
         <UnitSelect label="به" units={units} value={to} onChange={setTo} />
@@ -854,10 +893,10 @@ function UnitSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <div>
+    <div className="toolbo-field">
       <Label className="mb-2 block">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-10 w-full">
+        <SelectTrigger className="tool-input h-10 w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -905,15 +944,19 @@ function CalendarTool() {
 
   return (
     <ToolCardShell>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className="tool-field-grid">
+        <div className="toolbo-field">
           <Label className="mb-2 block">سال</Label>
-          <Input value={year} onChange={(event) => setYear(event.target.value)} />
+          <Input
+            value={year}
+            onChange={(event) => setYear(event.target.value)}
+            className="tool-input"
+          />
         </div>
-        <div>
+        <div className="toolbo-field">
           <Label className="mb-2 block">ماه</Label>
           <Select value={String(m)} onValueChange={setMonth}>
-            <SelectTrigger className="h-10 w-full">
+            <SelectTrigger className="tool-input h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -971,7 +1014,7 @@ function DateConvertTool() {
   return (
     <ToolCardShell>
       <Select value={mode} onValueChange={setMode}>
-        <SelectTrigger className="h-10 w-full sm:w-60">
+        <SelectTrigger className="tool-input h-10 w-full sm:w-60">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -982,7 +1025,12 @@ function DateConvertTool() {
       {mode === "gregorian" ? (
         <div className="mt-4 max-w-sm">
           <Label className="mb-2 block">تاریخ میلادی</Label>
-          <Input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+          <Input
+            type="date"
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="tool-input"
+          />
         </div>
       ) : (
         <div className="mt-4 grid gap-4 sm:grid-cols-3">
@@ -1005,7 +1053,12 @@ function AgeTool() {
     <ToolCardShell>
       <div className="max-w-sm">
         <Label className="mb-2 block">تاریخ تولد میلادی</Label>
-        <Input type="date" value={birth} onChange={(event) => setBirth(event.target.value)} />
+        <Input
+          type="date"
+          value={birth}
+          onChange={(event) => setBirth(event.target.value)}
+          className="tool-input"
+        />
       </div>
       <ResultBox
         result={
@@ -1088,7 +1141,7 @@ function PrayerTool() {
     <ToolCardShell>
       <div className="flex flex-col gap-3 sm:flex-row">
         <Select value={city} onValueChange={setCity}>
-          <SelectTrigger className="h-10 w-full sm:w-72">
+          <SelectTrigger className="tool-input h-10 w-full sm:w-72">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1099,7 +1152,7 @@ function PrayerTool() {
             ))}
           </SelectContent>
         </Select>
-        <Button type="button" onClick={loadPrayerTimes}>
+        <Button type="button" onClick={loadPrayerTimes} className="bn632-hover">
           دریافت اوقات شرعی
         </Button>
       </div>
@@ -1132,7 +1185,11 @@ function TimerTool() {
     <ToolCardShell>
       <div className="max-w-sm">
         <Label className="mb-2 block">ثانیه</Label>
-        <Input value={seconds} onChange={(event) => setSeconds(event.target.value)} />
+        <Input
+          value={seconds}
+          onChange={(event) => setSeconds(event.target.value)}
+          className="tool-input"
+        />
       </div>
       <div className="my-5 text-center text-5xl font-bold tabular-nums">
         {formatDuration(remaining)}
@@ -1140,6 +1197,7 @@ function TimerTool() {
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
+          className="bn632-hover"
           onClick={() => {
             if (!running) {
               const parsed = Math.max(0, Math.trunc(parseNumber(seconds)));
@@ -1154,6 +1212,7 @@ function TimerTool() {
         <Button
           type="button"
           variant="outline"
+          className="bn632-hover"
           onClick={() => {
             setRunning(false);
             setRemaining(Math.max(0, Math.trunc(parseNumber(seconds))));
@@ -1189,7 +1248,12 @@ function AlarmTool() {
     <ToolCardShell>
       <div className="max-w-sm">
         <Label className="mb-2 block">زمان هشدار</Label>
-        <Input type="time" value={time} onChange={(event) => setTime(event.target.value)} />
+        <Input
+          type="time"
+          value={time}
+          onChange={(event) => setTime(event.target.value)}
+          className="tool-input"
+        />
       </div>
       <ResultBox result={message} />
     </ToolCardShell>
@@ -1213,16 +1277,26 @@ function StopwatchTool() {
         {formatDuration(elapsed)}
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" onClick={() => setRunning((value) => !value)}>
+        <Button
+          type="button"
+          className="bn632-hover"
+          onClick={() => setRunning((value) => !value)}
+        >
           {running ? <Pause /> : <Play />}
           {running ? "توقف" : "شروع"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setLaps((items) => [elapsed, ...items])}>
+        <Button
+          type="button"
+          variant="outline"
+          className="bn632-hover"
+          onClick={() => setLaps((items) => [elapsed, ...items])}
+        >
           ثبت رکورد
         </Button>
         <Button
           type="button"
           variant="outline"
+          className="bn632-hover"
           onClick={() => {
             setRunning(false);
             setElapsed(0);
@@ -1322,7 +1396,7 @@ function TextTransformTool() {
     <ToolCardShell>
       <div className="space-y-4">
         <Select value={mode} onValueChange={setMode}>
-          <SelectTrigger className="h-10 w-full sm:w-60">
+          <SelectTrigger className="tool-input h-10 w-full sm:w-60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -1332,7 +1406,12 @@ function TextTransformTool() {
             <SelectItem value="toggle">برعکس کردن حالت</SelectItem>
           </SelectContent>
         </Select>
-        <Textarea value={text} onChange={(event) => setText(event.target.value)} className="min-h-40" dir="ltr" />
+        <Textarea
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          className="tool-input min-h-40"
+          dir="ltr"
+        />
         <CopyButton text={result} />
         <ResultBox result={result} />
       </div>
@@ -1346,7 +1425,11 @@ function TextCounterTool() {
 
   return (
     <ToolCardShell>
-      <Textarea value={text} onChange={(event) => setText(event.target.value)} className="min-h-44" />
+      <Textarea
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        className="tool-input min-h-44"
+      />
       <ResultBox
         result={[
           { label: "کلمه", value: formatNumber(words, 0) },
@@ -1372,11 +1455,11 @@ function LoremTool() {
 
   return (
     <ToolCardShell>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+      <div className="tool-field-grid">
+        <div className="toolbo-field">
           <Label className="mb-2 block">زبان</Label>
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="h-10 w-full">
+            <SelectTrigger className="tool-input h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1387,7 +1470,12 @@ function LoremTool() {
         </div>
         <LabeledInput label="تعداد پاراگراف" value={count} onChange={setCount} />
       </div>
-      <Textarea value={text} readOnly className="mt-4 min-h-56" dir={language === "fa" ? "rtl" : "ltr"} />
+      <Textarea
+        value={text}
+        readOnly
+        className="tool-input mt-4 min-h-56"
+        dir={language === "fa" ? "rtl" : "ltr"}
+      />
       <div className="mt-3">
         <CopyButton text={text} />
       </div>
@@ -1435,7 +1523,9 @@ function PasswordTool() {
         </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button type="button" onClick={generate}>تولید پسورد</Button>
+        <Button type="button" onClick={generate} className="bn632-hover">
+          تولید پسورد
+        </Button>
         <CopyButton text={password} />
       </div>
       <ResultBox result={password} />
@@ -1459,7 +1549,9 @@ function MyIpTool() {
 
   return (
     <ToolCardShell>
-      <Button type="button" onClick={loadIp}>نمایش IP</Button>
+      <Button type="button" onClick={loadIp} className="bn632-hover">
+        نمایش IP
+      </Button>
       <ResultBox result={result} />
     </ToolCardShell>
   );
@@ -1477,6 +1569,7 @@ function TimestampTool() {
         <Button
           type="button"
           variant="outline"
+          className="bn632-hover"
           onClick={() => setTimestamp(String(Math.floor(Date.now() / 1000)))}
         >
           اکنون
@@ -1511,7 +1604,11 @@ function BinaryTool() {
   return (
     <ToolCardShell>
       <Label className="mb-2 block">متن</Label>
-      <Textarea value={text} onChange={(event) => setText(event.target.value)} className="min-h-32" />
+      <Textarea
+        value={text}
+        onChange={(event) => setText(event.target.value)}
+        className="tool-input min-h-32"
+      />
       <ResultBox
         result={[
           { label: "باینری", value: binary },
@@ -1524,9 +1621,9 @@ function BinaryTool() {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md border bg-background p-4">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-2 font-semibold">{value}</div>
+    <div className="result-item">
+      <div className="result-label">{label}</div>
+      <div className="result-value">{value}</div>
     </div>
   );
 }
@@ -1543,9 +1640,14 @@ function LabeledInput({
   type?: string;
 }) {
   return (
-    <div>
+    <div className="toolbo-field">
       <Label className="mb-2 block">{label}</Label>
-      <Input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <Input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="tool-input"
+      />
     </div>
   );
 }
@@ -1555,6 +1657,7 @@ function CopyButton({ text }: { text: string }) {
     <Button
       type="button"
       variant="outline"
+      className="bn632-hover"
       disabled={!text}
       onClick={() => navigator.clipboard.writeText(text)}
     >

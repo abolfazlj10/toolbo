@@ -9,6 +9,12 @@ npm install
 npm run dev
 ```
 
+The app runs at:
+
+```sh
+http://localhost:3009
+```
+
 ## Build
 
 ```sh
