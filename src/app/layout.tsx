@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AppProviders } from "@/components/app-providers";
+import { SiteShell } from "@/components/site-shell";
 import "./globals.css";
 import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
@@ -18,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="fa" dir="rtl" className={cn("h-full", "font-sans", geist.variable)}>
       <body className="min-h-full bg-background text-foreground antialiased">
-        {children}
+        <AppProviders>
+          <SiteShell>{children}</SiteShell>
+        </AppProviders>
       </body>
     </html>
   );
