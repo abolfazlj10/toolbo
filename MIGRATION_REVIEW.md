@@ -3,7 +3,7 @@
 ## Existing Project
 
 - Vue 3 app bootstrapped with Vite.
-- Routing is handled by `vue-router` with one home route, nine category routes, and 45 tool routes.
+- Routing is handled by `vue-router` with one home route, nine category routes, and 50 tool routes.
 - Styling is mostly hand-written CSS in `src/assets/base.css` and component-scoped Vue styles.
 - Data for category navigation and the home page lives in `src/data/db.json`.
 - The app is Persian and RTL-first, with local Persian fonts and icon fonts under `src/assets`.
