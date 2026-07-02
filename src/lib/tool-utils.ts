@@ -66,6 +66,10 @@ export function formatNumber(value: number, digits = 2) {
     return "نامعتبر";
   }
 
+  if (value !== 0 && Math.abs(value) < 0.000001) {
+    return value.toExponential(Math.min(Math.max(digits, 2), 8));
+  }
+
   const fixed =
     Math.abs(value) >= 1000 || Number.isInteger(value)
       ? value

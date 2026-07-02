@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useFavorites } from "@/components/favorites-provider";
+import { useRecentTools } from "@/components/recent-tools-provider";
 import { useTheme } from "@/components/theme-provider";
 import { categories, getSearchResults } from "@/lib/tool-data";
 import { cn } from "@/lib/utils";
@@ -21,9 +22,11 @@ export function SiteShell({ children }: { children: ReactNode }) {
 function SiteHeader() {
   const { isDark, toggleTheme } = useTheme();
   const { favorites } = useFavorites();
+  const { recentTools } = useRecentTools();
   const [search, setSearch] = useState("");
   const [showTools, setShowTools] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [showRecentTools, setShowRecentTools] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [fixedNav, setFixedNav] = useState(false);
   const [containerNav, setContainerNav] = useState(true);
@@ -56,7 +59,14 @@ function SiteHeader() {
       <div className="nav" id="top">
         <Link className="SB" href="/" title="تولبو" aria-label="تولبو">
           <div className={cn("N_T", isDark && "N_C_D")}>
-            <Image src="/ToolBo.png" alt="icon brand" width={45} height={45} priority />
+            <Image
+              src="/ToolBo.png"
+              alt="icon brand"
+              width={45}
+              height={45}
+              priority
+              style={{ height: "auto" }}
+            />
           </div>
         </Link>
 
@@ -139,6 +149,32 @@ function SiteHeader() {
                       </div>
                     )}
                   </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div
+            className="N_B_OM"
+            onMouseEnter={() => setShowRecentTools(true)}
+            onMouseLeave={() => setShowRecentTools(false)}
+          >
+            <span>اخیر</span>
+            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
+              &#xe902;
+            </span>
+            {showRecentTools && (
+              <div className={cn("MDF showBox", isDark && "MDF_D")}>
+                {recentTools.length === 0 && <div className="MD_IFDI">خالی</div>}
+                {recentTools.map((item) => (
+                  <Link
+                    key={item.url}
+                    href={item.url}
+                    title={item.sub}
+                    className={cn("MD_IF", isDark && "MD_IFD")}
+                  >
+                    <span className="MD_I_T">{item.title}</span>
+                  </Link>
                 ))}
               </div>
             )}
@@ -288,7 +324,14 @@ function SiteFooter() {
         <div className="TB">
           <div className="TBR">
             <Link href="/">
-              <Image className="TBRI" src="/ToolBo.png" alt="icon brand" width={40} height={40} />
+              <Image
+                className="TBRI"
+                src="/ToolBo.png"
+                alt="icon brand"
+                width={40}
+                height={40}
+                style={{ height: "auto" }}
+              />
             </Link>
             <div className="TBRV">v 3.0.0</div>
           </div>

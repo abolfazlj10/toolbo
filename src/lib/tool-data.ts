@@ -1,4 +1,6 @@
 import rawData from "@/data/db.json";
+import { normalizeSearchText } from "@/lib/search-utils";
+import { getToolMetadata } from "@/lib/tool-metadata";
 
 export type ToolItem = {
   title: string;
@@ -51,7 +53,7 @@ export function getToolByPath(category: string, tool: string) {
 }
 
 export function getSearchResults(query: string) {
-  const term = query.trim();
+  const term = normalizeSearchText(query);
 
   if (term.length < 2) {
     return {
@@ -61,11 +63,44 @@ export function getSearchResults(query: string) {
     };
   }
 
+  const rankedTools = allTools
+    .map((tool) => {
+      const metadata = getToolMetadata(tool.url);
+      const normalizedTitle = normalizeSearchText(tool.title);
+      const normalizedSub = normalizeSearchText(tool.sub);
+      const normalizedCategory = normalizeSearchText(tool.categoryTitle);
+      const aliases = metadata?.aliases?.map(normalizeSearchText) ?? [];
+      const keywords = metadata?.keywords?.map(normalizeSearchText) ?? [];
+      let score = 0;
+
+      if (normalizedTitle === term) score = Math.max(score, 1000);
+      if (normalizedTitle.startsWith(term)) score = Math.max(score, 900);
+      if (normalizedTitle.includes(term)) score = Math.max(score, 800);
+      if (aliases.some((alias) => alias === term)) score = Math.max(score, 750);
+      if (aliases.some((alias) => alias.startsWith(term))) score = Math.max(score, 700);
+      if (aliases.some((alias) => alias.includes(term))) score = Math.max(score, 650);
+      if (normalizedCategory.includes(term)) score = Math.max(score, 500);
+      if (normalizedSub.includes(term)) score = Math.max(score, 450);
+      if (keywords.some((keyword) => keyword.includes(term))) score = Math.max(score, 400);
+
+      return {
+        tool,
+        score: score + (metadata?.priority ?? 0),
+      };
+    })
+    .filter((item) => item.score > 0)
+    .sort((first, second) => second.score - first.score)
+    .map((item) => item.tool);
+
   return {
-    categories: categories.filter((category) => category.title.includes(term)),
-    tools: allTools.filter(
-      (tool) => tool.title.includes(term) || tool.sub.includes(term)
+    categories: categories.filter((category) =>
+      normalizeSearchText(category.title).includes(term)
     ),
-    recommended: recommendedTools.filter((tool) => tool.title.includes(term)),
+    tools: rankedTools,
+    recommended: recommendedTools.filter(
+      (tool) =>
+        normalizeSearchText(tool.title).includes(term) ||
+        normalizeSearchText(tool.info).includes(term)
+    ),
   };
 }

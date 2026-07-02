@@ -9,7 +9,14 @@
             {"title":"تنظیم زنگ هشدار آنلاین ","sub":"تنظیم آلارم","url":"/time/alarm"},
             {"title":"شمارش معکوس زمان","sub":"ثانیه شمار آنلاین","url":"/time/timer"},
             {"title":"کرنومتر آنلاین","sub":"ثبت و مقایسه رکورد","url":"/time/cornometr"},
-            {"title":"محاسبه اختلاف دو تاریخ","sub":"تعداد روز و ماه و سال","url":"/time/spacingDate"}
+            {"title":"محاسبه اختلاف دو تاریخ","sub":"تعداد روز و ماه و سال","url":"/time/spacingDate"},
+            {"title":"تعطیل‌های رسمی ایران","sub":"تعطیل‌های ثابت تقویم شمسی","url":"/time/iran-holidays"},
+            {"title":"مناسبت‌های امروز","sub":"مناسبت‌های امروز و روزهای نزدیک","url":"/time/events"},
+            {"title":"محاسبه روز کاری","sub":"شمارش روزهای کاری بین دو تاریخ","url":"/time/working-days"},
+            {"title":"جمع و تفریق روز از تاریخ","sub":"افزودن یا کم کردن روز از تاریخ میلادی","url":"/time/date-calculator"},
+            {"title":"ساعت جهان","sub":"نمایش ساعت شهرها و منطقه‌های زمانی","url":"/time/world-clock"},
+            {"title":"اختلاف منطقه زمانی","sub":"مقایسه اختلاف ساعت بین دو شهر","url":"/time/timezone-difference"},
+            {"title":"شمارش معکوس تا تاریخ","sub":"روز، ساعت و دقیقه مانده تا رویداد","url":"/time/countdown"}
         ]}, 
         {"title":"مالی" , "icon":"f0d6;" , "url":"/fiscal","item":[
             {"title":"محاسبه سود و اقساط وام","sub":"محاسبه با فرمول جدید و قدیم","url":"/fiscal/loanInterest"},
@@ -34,7 +41,20 @@
             {"title":"تبدیل طول","sub":"تبدیل متر ، سانتیمتر و... به سایر واحدها","url":"/conversions/convert-length"},
             {"title":"تبدیل دما","sub":"تبدیل سلسیوس  و... به سایر واحدها","url":"/conversions/convert-temperature"},
             {"title":"تبدیل سرعت","sub":"تبدیل متر بر ثانیه و... به سایر واحدها","url":"/conversions/convert-speed"},
-            {"title":"تبدیل زمان","sub":"تبدیل ساعت ، دقیقه و... به سایر واحدها","url":"/conversions/convert-time"}
+            {"title":"تبدیل زمان","sub":"تبدیل ساعت ، دقیقه و... به سایر واحدها","url":"/conversions/convert-time"},
+            {"title":"تبدیل مساحت","sub":"تبدیل متر مربع، هکتار، فوت مربع و...","url":"/conversions/convert-area"},
+            {"title":"تبدیل حجم","sub":"تبدیل لیتر، میلی لیتر، گالن و...","url":"/conversions/convert-volume"},
+            {"title":"تبدیل حجم داده","sub":"تبدیل بیت، بایت، گیگابایت و...","url":"/conversions/convert-digital-storage"},
+            {"title":"تبدیل سرعت انتقال داده","sub":"تبدیل bps، Mbps، MB/s و...","url":"/conversions/convert-data-transfer"},
+            {"title":"تبدیل انرژی","sub":"تبدیل ژول، کالری، کیلووات ساعت و...","url":"/conversions/convert-energy"},
+            {"title":"تبدیل توان","sub":"تبدیل وات، کیلووات و اسب بخار","url":"/conversions/convert-power"},
+            {"title":"تبدیل فشار","sub":"تبدیل پاسکال، بار، اتمسفر و PSI","url":"/conversions/convert-pressure"},
+            {"title":"تبدیل زاویه","sub":"تبدیل درجه، رادیان و گرادیان","url":"/conversions/convert-angle"},
+            {"title":"تبدیل فرکانس","sub":"تبدیل هرتز، کیلوهرتز و مگاهرتز","url":"/conversions/convert-frequency"},
+            {"title":"تبدیل جریان الکتریکی","sub":"تبدیل آمپر، میلی آمپر و میکرو آمپر","url":"/conversions/convert-electric-current"},
+            {"title":"تبدیل ولتاژ","sub":"تبدیل ولت، میلی ولت و کیلوولت","url":"/conversions/convert-voltage"},
+            {"title":"تبدیل گشتاور","sub":"تبدیل نیوتن متر، پوند فوت و...","url":"/conversions/convert-torque"},
+            {"title":"تبدیل مبنای عدد","sub":"تبدیل باینری، اکتال، دهدهی و هگز","url":"/conversions/convert-number-base"}
         ]},
         {"title":"سلامت" , "icon":"f21e;" , "url":"/health","item":[
             {"title":"محاسبه BMI","sub":"شاخص توده بدن","url":"/health/BMI"},

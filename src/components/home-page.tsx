@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { RecentToolsSection } from "@/components/recent-tools";
+import { TodayDashboard } from "@/components/today-dashboard";
 import { categories, recommendedTools } from "@/lib/tool-data";
 
 export function HomePage() {
   return (
     <div className="C">
       <div className="container_m">
+        <TodayDashboard />
+        <RecentToolsSection />
         <h3 className="TS" id="toolsUsage">
           ابزار های کاربردی
         </h3>

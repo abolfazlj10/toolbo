@@ -1,14 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowLeftRight,
   Copy,
   Pause,
   Play,
   RotateCcw,
   Star,
 } from "lucide-react";
+import { ResultActions } from "@/components/result-actions";
+import { useRecentTools } from "@/components/recent-tools-provider";
+import { ToolHistory, useToolHistory } from "@/components/tool-history";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -23,10 +27,30 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useFavorites } from "@/components/favorites-provider";
 import { ToolCard } from "@/components/tool-card";
+import {
+  CountdownTool,
+  DateOffsetTool,
+  EventsTool,
+  HolidayTool,
+  TimeZoneDifferenceTool,
+  TodayDashboardTool,
+  WorkingDaysTool,
+  WorldClockTool,
+} from "@/components/time-tools";
 import { useTheme } from "@/components/theme-provider";
-import { categories, type ToolWithCategory } from "@/lib/tool-data";
+import { allTools, categories, type ToolWithCategory } from "@/lib/tool-data";
+import { resultToText, type ResultLine, type ToolResult } from "@/lib/result-format";
+import { getToolMetadata, type ToolMetadata } from "@/lib/tool-metadata";
 import { cn } from "@/lib/utils";
-import { unitGroups, type UnitGroupId, convertUnit } from "@/lib/unit-conversions";
+import {
+  convertNumberBase,
+  convertUnit,
+  getConversionGroupFromUrl,
+  numberBaseUnits,
+  unitGroups,
+  type NumberBaseId,
+  type UnitGroupId,
+} from "@/lib/unit-conversions";
 import {
   buildJalaaliMonth,
   diffDates,
@@ -50,11 +74,6 @@ import {
 } from "@/lib/tool-utils";
 import nationalCodes from "@/data/national-num.json";
 import religiousCities from "@/data/religious.json";
-
-type ResultLine = {
-  label: string;
-  value: string;
-};
 
 type Field =
   | {
@@ -113,6 +132,113 @@ const bankCards = [
   { bank: "حکمت ایرانیان", card: "636949" },
   { bank: "ایران زمین", card: "505785" },
 ];
+
+const historyToolUrls = new Set([
+  "/time/convertor",
+  "/time/mathAge",
+  "/fiscal/loanInterest",
+  "/numbers/percent",
+  "/conversions/convert-weight",
+  "/conversions/convert-length",
+  "/conversions/convert-temperature",
+  "/conversions/convert-speed",
+  "/conversions/convert-time",
+  "/conversions/convert-area",
+  "/conversions/convert-volume",
+  "/conversions/convert-digital-storage",
+  "/conversions/convert-data-transfer",
+  "/conversions/convert-energy",
+  "/conversions/convert-power",
+  "/conversions/convert-pressure",
+  "/conversions/convert-angle",
+  "/conversions/convert-frequency",
+  "/conversions/convert-electric-current",
+  "/conversions/convert-voltage",
+  "/conversions/convert-torque",
+  "/conversions/convert-number-base",
+  "/text/counter-word",
+  "/technology/password-random",
+]);
+
+const conversionPresets: Partial<
+  Record<UnitGroupId, { label: string; amount: string; from: string; to: string }[]>
+> = {
+  length: [
+    { label: "۱ متر به سانتی متر", amount: "1", from: "m", to: "cm" },
+    { label: "۱۰ کیلومتر به مایل", amount: "10", from: "km", to: "mi" },
+  ],
+  weight: [
+    { label: "۱ کیلوگرم به گرم", amount: "1", from: "kg", to: "g" },
+    { label: "۱۰ پوند به کیلوگرم", amount: "10", from: "lb", to: "kg" },
+  ],
+  area: [
+    { label: "۱ متر مربع به سانتی متر مربع", amount: "1", from: "sq-m", to: "sq-cm" },
+    { label: "۱ هکتار به متر مربع", amount: "1", from: "hectare", to: "sq-m" },
+  ],
+  volume: [
+    { label: "۱ لیتر به میلی لیتر", amount: "1", from: "l", to: "ml" },
+    { label: "۱ گالن آمریکا به لیتر", amount: "1", from: "us-gal", to: "l" },
+  ],
+  digitalStorage: [
+    { label: "۱ گیگابایت به مگابایت", amount: "1", from: "gb", to: "mb" },
+    { label: "۱ گیبی بایت به مگابایت", amount: "1", from: "gib", to: "mb" },
+  ],
+  dataTransfer: [
+    { label: "۱۰۰ Mbps به MB/s", amount: "100", from: "mbps", to: "MBps" },
+    { label: "۱ GB/s به Gbps", amount: "1", from: "GBps", to: "gbps" },
+  ],
+  temperature: [
+    { label: "۰ سلسیوس به فارنهایت", amount: "0", from: "c", to: "f" },
+    { label: "۲۵ سلسیوس به کلوین", amount: "25", from: "c", to: "k" },
+  ],
+  speed: [
+    { label: "۱۰۰ کیلومتر بر ساعت به متر بر ثانیه", amount: "100", from: "kph", to: "mps" },
+    { label: "۶۰ مایل بر ساعت به کیلومتر بر ساعت", amount: "60", from: "mph", to: "kph" },
+  ],
+};
+
+const weekdayFormatter = new Intl.DateTimeFormat("fa-IR", {
+  weekday: "long",
+});
+
+function isMeaningfulResultText(text: string) {
+  const trimmed = text.trim();
+
+  return (
+    trimmed.length > 0 &&
+    !trimmed.includes("کامل کنید") &&
+    !trimmed.includes("وارد کنید") &&
+    !trimmed.includes("نامعتبر") &&
+    !trimmed.includes("موردی پیدا نشد")
+  );
+}
+
+function useRememberResultHistory({
+  enabled,
+  result,
+  title,
+  url,
+}: {
+  enabled: boolean;
+  result: ToolResult;
+  title: string;
+  url: string;
+}) {
+  const { entries, addHistory, clearHistory } = useToolHistory(url);
+  const resultText = resultToText(result);
+  const lastSaved = useRef("");
+
+  useEffect(() => {
+    if (!enabled || !isMeaningfulResultText(resultText) || resultText === lastSaved.current) {
+      return;
+    }
+
+    lastSaved.current = resultText;
+    addHistory(`${title}\n${resultText}`);
+  }, [addHistory, enabled, resultText, title]);
+
+  return { entries, clearHistory, resultText };
+}
 
 const calculators: Record<string, CalculatorDefinition> = {
   "/numbers/percent": {
@@ -374,6 +500,9 @@ const calculators: Record<string, CalculatorDefinition> = {
       const nums = requireNumbers(values, ["weight", "height"]);
       if (!nums || nums.height <= 0) return "قد و وزن را کامل کنید.";
       const bmi = nums.weight / Math.pow(nums.height / 100, 2);
+      const heightMeters = nums.height / 100;
+      const healthyLow = 18.5 * Math.pow(heightMeters, 2);
+      const healthyHigh = 24.9 * Math.pow(heightMeters, 2);
       const status =
         bmi < 16.5
           ? "کمبود وزن شدید"
@@ -390,7 +519,11 @@ const calculators: Record<string, CalculatorDefinition> = {
                     : "چاقی کلاس ۳";
       return [
         { label: "BMI", value: formatNumber(bmi) },
-        { label: "وضعیت", value: status },
+        { label: "رده", value: status },
+        {
+          label: "بازه وزن سالم برای این قد",
+          value: `${formatNumber(healthyLow, 1)} تا ${formatNumber(healthyHigh, 1)} کیلوگرم`,
+        },
       ];
     },
   },
@@ -399,25 +532,58 @@ const calculators: Record<string, CalculatorDefinition> = {
       { name: "weight", label: "وزن (کیلوگرم)" },
       { name: "height", label: "قد (سانتی متر)" },
       { name: "age", label: "سن" },
+      {
+        name: "activity",
+        label: "سطح فعالیت",
+        kind: "select",
+        defaultValue: "1.2",
+        options: [
+          { label: "کم تحرک", value: "1.2" },
+          { label: "فعالیت سبک", value: "1.375" },
+          { label: "فعالیت متوسط", value: "1.55" },
+          { label: "فعالیت زیاد", value: "1.725" },
+          { label: "خیلی فعال", value: "1.9" },
+        ],
+      },
     ],
     calculate(values) {
       const nums = requireNumbers(values, ["weight", "height", "age"]);
       if (!nums) return "فیلد ها را کامل کنید.";
+      const activity = parseNumber(values.activity) || 1.2;
+      const maleBmr =
+        66.47 + 13.75 * nums.weight + 5.003 * nums.height - 6.755 * nums.age;
+      const femaleBmr =
+        655.1 + 9.563 * nums.weight + 1.85 * nums.height - 4.676 * nums.age;
+      const maleMaintenance = maleBmr * activity;
+      const femaleMaintenance = femaleBmr * activity;
       return [
         {
-          label: "مرد",
-          value: `${formatNumber(
-            66.47 + 13.75 * nums.weight + 5.003 * nums.height - 6.755 * nums.age,
+          label: "BMR مرد",
+          value: `${formatNumber(maleBmr, 0)} کالری`,
+        },
+        {
+          label: "BMR زن",
+          value: `${formatNumber(femaleBmr, 0)} کالری`,
+        },
+        {
+          label: "نگهداری وزن مرد",
+          value: `${formatNumber(maleMaintenance, 0)} کالری`,
+        },
+        {
+          label: "نگهداری وزن زن",
+          value: `${formatNumber(femaleMaintenance, 0)} کالری`,
+        },
+        {
+          label: "کاهش وزن ملایم",
+          value: `${formatNumber(maleMaintenance - 250, 0)} / ${formatNumber(
+            femaleMaintenance - 250,
             0
           )} کالری`,
         },
         {
-          label: "زن",
-          value: `${formatNumber(
-            655.1 +
-              9.563 * nums.weight +
-              1.85 * nums.height -
-              4.676 * nums.age,
+          label: "افزایش وزن ملایم",
+          value: `${formatNumber(maleMaintenance + 250, 0)} / ${formatNumber(
+            femaleMaintenance + 250,
             0
           )} کالری`,
         },
@@ -584,13 +750,19 @@ const calculators: Record<string, CalculatorDefinition> = {
 
 export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { addRecentTool } = useRecentTools();
   const { isDark } = useTheme();
   const favorite = isFavorite(tool.url);
+  const metadata = getToolMetadata(tool.url);
   const related =
     categories
       .find((category) => category.url === tool.categoryUrl)
       ?.item.filter((item) => item.url !== tool.url)
       .slice(0, 3) ?? [];
+
+  useEffect(() => {
+    addRecentTool(tool);
+  }, [addRecentTool, tool]);
 
   return (
     <>
@@ -631,7 +803,10 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
                 {favorite ? "حذف کردن" : "اضافه کردن"}
               </button>
             </div>
+            <ToolTrustMetadata metadata={metadata} />
           </aside>
+
+          <ToolExplainer tool={tool} metadata={metadata} />
 
           {related.length > 0 && (
             <section className="tool-related">
@@ -652,23 +827,41 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
 }
 
 function renderTool(tool: ToolWithCategory) {
+  if (tool.url === "/fiscal/loanInterest") {
+    return <LoanCalculatorTool tool={tool} />;
+  }
+
   if (tool.url in calculators) {
-    return <CalculatorTool definition={calculators[tool.url]} />;
+    return <CalculatorTool definition={calculators[tool.url]} tool={tool} />;
   }
 
   if (tool.url.startsWith("/conversions/")) {
-    return <ConversionTool url={tool.url} />;
+    return <ConversionTool tool={tool} />;
   }
 
   switch (tool.url) {
     case "/time/date":
-      return <TodayTool />;
+      return <TodayDashboardTool />;
+    case "/time/iran-holidays":
+      return <HolidayTool />;
+    case "/time/events":
+      return <EventsTool />;
+    case "/time/working-days":
+      return <WorkingDaysTool />;
+    case "/time/date-calculator":
+      return <DateOffsetTool />;
+    case "/time/world-clock":
+      return <WorldClockTool />;
+    case "/time/timezone-difference":
+      return <TimeZoneDifferenceTool />;
+    case "/time/countdown":
+      return <CountdownTool />;
     case "/time/cleander":
       return <CalendarTool />;
     case "/time/convertor":
-      return <DateConvertTool />;
+      return <DateConvertTool tool={tool} />;
     case "/time/mathAge":
-      return <AgeTool />;
+      return <AgeTool tool={tool} />;
     case "/time/religious":
       return <PrayerTool />;
     case "/time/alarm":
@@ -686,11 +879,11 @@ function renderTool(tool: ToolWithCategory) {
     case "/text/convert-word":
       return <TextTransformTool />;
     case "/text/counter-word":
-      return <TextCounterTool />;
+      return <TextCounterTool tool={tool} />;
     case "/text/Lorem":
       return <LoremTool />;
     case "/technology/password-random":
-      return <PasswordTool />;
+      return <PasswordTool tool={tool} />;
     case "/technology/MyIP":
       return <MyIpTool />;
     case "/technology/TimeStamp":
@@ -707,7 +900,220 @@ function renderTool(tool: ToolWithCategory) {
   }
 }
 
-function CalculatorTool({ definition }: { definition: CalculatorDefinition }) {
+type LoanScheduleRow = {
+  month: number;
+  payment: number;
+  principal: number;
+  interest: number;
+  remaining: number;
+};
+
+function buildLoanSchedule(amount: number, annualProfit: number, months: number) {
+  const monthlyRate = annualProfit / 1200;
+  const payment =
+    monthlyRate === 0
+      ? amount / months
+      : (amount * monthlyRate * Math.pow(1 + monthlyRate, months)) /
+        (Math.pow(1 + monthlyRate, months) - 1);
+  const schedule: LoanScheduleRow[] = [];
+  let remaining = amount;
+
+  for (let month = 1; month <= months; month += 1) {
+    const interest = remaining * monthlyRate;
+    const principal =
+      month === months ? remaining : Math.min(payment - interest, remaining);
+    const actualPayment = principal + interest;
+    remaining = Math.max(0, remaining - principal);
+    schedule.push({
+      month,
+      payment: actualPayment,
+      principal,
+      interest,
+      remaining,
+    });
+  }
+
+  return {
+    payment,
+    totalProfit: schedule.reduce((sum, row) => sum + row.interest, 0),
+    schedule,
+  };
+}
+
+function loanScheduleToText(rows: LoanScheduleRow[]) {
+  return [
+    "ماه,قسط,اصل,سود,مانده",
+    ...rows.map((row) =>
+      [
+        row.month,
+        Math.round(row.payment),
+        Math.round(row.principal),
+        Math.round(row.interest),
+        Math.round(row.remaining),
+      ].join(",")
+    ),
+  ].join("\n");
+}
+
+function LoanCalculatorTool({ tool }: { tool: ToolWithCategory }) {
+  const fields: Field[] = [
+    { name: "amount", label: "مبلغ وام" },
+    { name: "profit", label: "نرخ سود سالانه" },
+    { name: "period", label: "مدت بازپرداخت" },
+    {
+      name: "periodType",
+      label: "واحد مدت",
+      kind: "select",
+      defaultValue: "year",
+      options: [
+        { label: "سال", value: "year" },
+        { label: "ماه", value: "month" },
+      ],
+    },
+  ];
+  const [values, setValues] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      fields.map((field) => [
+        field.name,
+        "defaultValue" in field ? (field.defaultValue ?? "") : "",
+      ])
+    )
+  );
+  const [summary, setSummary] = useState<ResultLine[] | string | null>(null);
+  const [schedule, setSchedule] = useState<LoanScheduleRow[]>([]);
+  const [showFullSchedule, setShowFullSchedule] = useState(false);
+  const { entries, addHistory, clearHistory } = useToolHistory(tool.url);
+  const visibleSchedule = showFullSchedule ? schedule : schedule.slice(0, 12);
+  const scheduleText = schedule.length > 0 ? loanScheduleToText(schedule) : "";
+
+  function calculateLoan() {
+    const nums = requireNumbers(values, ["amount", "profit", "period"]);
+
+    if (!nums || nums.amount <= 0 || nums.period <= 0 || nums.profit < 0) {
+      setSummary("فیلد ها را کامل کنید.");
+      setSchedule([]);
+      return;
+    }
+
+    const months = Math.max(
+      1,
+      Math.min(
+        600,
+        Math.trunc(values.periodType === "month" ? nums.period : nums.period * 12)
+      )
+    );
+    const oldProfit = (nums.amount * nums.profit * (months + 1)) / 2400;
+    const oldPayment = (nums.amount + oldProfit) / months;
+    const calculation = buildLoanSchedule(nums.amount, nums.profit, months);
+    const nextSummary = [
+      { label: "قسط ماهانه روش جدید", value: formatNumber(calculation.payment, 0) },
+      { label: "کل سود روش جدید", value: formatNumber(calculation.totalProfit, 0) },
+      { label: "قسط ماهانه روش قدیم", value: formatNumber(oldPayment, 0) },
+      { label: "کل سود روش قدیم", value: formatNumber(oldProfit, 0) },
+      { label: "تعداد اقساط", value: formatNumber(months, 0) },
+    ];
+
+    setSummary(nextSummary);
+    setSchedule(calculation.schedule);
+    setShowFullSchedule(false);
+    addHistory(`${tool.title}\n${resultToText(nextSummary)}`);
+  }
+
+  return (
+    <ToolCardShell>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          calculateLoan();
+        }}
+      >
+        <div className="tool-field-grid">
+          {fields.map((field) => (
+            <FieldControl
+              key={field.name}
+              field={field}
+              value={values[field.name] ?? ""}
+              onChange={(value) =>
+                setValues((current) => ({ ...current, [field.name]: value }))
+              }
+            />
+          ))}
+        </div>
+        <Button type="submit" className="bn632-hover">
+          <span className="fontIcon">&#xe906;</span>
+          محاسبه
+        </Button>
+      </form>
+      <ResultBox result={summary} title={tool.title} filenameSlug={tool.slug} />
+      {schedule.length > 0 && (
+        <section className="loan-schedule" aria-label="جدول بازپرداخت وام">
+          <div className="loan-schedule-header">
+            <div>
+              <div className="tool-subheading">جدول بازپرداخت</div>
+              <div className="tool-history-subtitle">
+                {showFullSchedule ? "همه اقساط" : "۱۲ قسط اول"}
+              </div>
+            </div>
+            <ResultActions
+              title={`${tool.title} - جدول بازپرداخت`}
+              text={scheduleText}
+              filenameSlug={`${tool.slug}-schedule`}
+              canPrint={false}
+            />
+          </div>
+          <div className="loan-table-wrapper">
+            <table className="loan-table">
+              <thead>
+                <tr>
+                  <th>ماه</th>
+                  <th>قسط</th>
+                  <th>اصل</th>
+                  <th>سود</th>
+                  <th>مانده</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleSchedule.map((row) => (
+                  <tr key={row.month}>
+                    <td>{toPersianDigits(row.month)}</td>
+                    <td>{formatNumber(row.payment, 0)}</td>
+                    <td>{formatNumber(row.principal, 0)}</td>
+                    <td>{formatNumber(row.interest, 0)}</td>
+                    <td>{formatNumber(row.remaining, 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {schedule.length > 12 && (
+            <Button
+              type="button"
+              variant="outline"
+              className="bn632-hover"
+              onClick={() => setShowFullSchedule((current) => !current)}
+            >
+              {showFullSchedule ? "نمایش ۱۲ قسط اول" : "نمایش همه اقساط"}
+            </Button>
+          )}
+        </section>
+      )}
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
+      />
+    </ToolCardShell>
+  );
+}
+
+function CalculatorTool({
+  definition,
+  tool,
+}: {
+  definition: CalculatorDefinition;
+  tool: ToolWithCategory;
+}) {
   const initialValues = useMemo(
     () =>
       Object.fromEntries(
@@ -720,6 +1126,12 @@ function CalculatorTool({ definition }: { definition: CalculatorDefinition }) {
   );
   const [values, setValues] = useState<Record<string, string>>(initialValues);
   const [result, setResult] = useState<ResultLine[] | string | null>(null);
+  const { entries, clearHistory } = useRememberResultHistory({
+    enabled: historyToolUrls.has(tool.url),
+    result,
+    title: tool.title,
+    url: tool.url,
+  });
 
   return (
     <ToolCardShell>
@@ -747,7 +1159,13 @@ function CalculatorTool({ definition }: { definition: CalculatorDefinition }) {
           محاسبه
         </Button>
       </form>
-      <ResultBox result={result} />
+      <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
+      />
     </ToolCardShell>
   );
 }
@@ -761,12 +1179,14 @@ function FieldControl({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const id = useId();
+
   return (
     <div className={cn("toolbo-field", field.kind === "textarea" && "md:col-span-2")}>
-      <Label className="mb-2 block">{field.label}</Label>
+      <Label htmlFor={id} className="mb-2 block">{field.label}</Label>
       {field.kind === "select" ? (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="tool-input h-10 w-full">
+          <SelectTrigger id={id} className="tool-input h-10 w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -779,6 +1199,7 @@ function FieldControl({
         </Select>
       ) : field.kind === "textarea" ? (
         <Textarea
+          id={id}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
@@ -787,6 +1208,7 @@ function FieldControl({
         />
       ) : (
         <Input
+          id={id}
           value={value}
           inputMode={field.kind === "text" ? "text" : "decimal"}
           onChange={(event) => onChange(event.target.value)}
@@ -801,17 +1223,29 @@ function FieldControl({
 function ResultBox({
   result,
   tone = "default",
+  title = "نتیجه تولبو",
+  filenameSlug = "toolbo-result",
+  actions = true,
 }: {
   result: ResultLine[] | string | null;
   tone?: "default" | "muted";
+  title?: string;
+  filenameSlug?: string;
+  actions?: boolean;
 }) {
   const { isDark } = useTheme();
+  const resultText = resultToText(result);
 
   if (!result) return null;
 
   return (
     <div className={cn("Result", isDark && "Result_D")}>
-      <div className="title_tool">نتیجه</div>
+      <div className="title_tool result-title-row">
+        <span>نتیجه</span>
+        {actions && (
+          <ResultActions title={title} text={resultText} filenameSlug={filenameSlug} />
+        )}
+      </div>
       {typeof result === "string" ? (
         <p className={cn("textResult", tone === "muted" && "opacity-75")}>
           {result}
@@ -834,24 +1268,72 @@ function ToolCardShell({ children }: { children: React.ReactNode }) {
   return <div>{children}</div>;
 }
 
-function ConversionTool({ url }: { url: string }) {
-  const group = url.endsWith("convert-weight")
-    ? "weight"
-    : url.endsWith("convert-length")
-      ? "length"
-      : url.endsWith("convert-speed")
-        ? "speed"
-        : url.endsWith("convert-temperature")
-          ? "temperature"
-          : "time";
-  const units = unitGroups[group as UnitGroupId];
+function ConversionTool({ tool }: { tool: ToolWithCategory }) {
+  if (tool.url.endsWith("convert-number-base")) {
+    return <NumberBaseConversionTool tool={tool} />;
+  }
+
+  const group = getConversionGroupFromUrl(tool.url);
+
+  if (!group) {
+    return <ResultBox result="این تبدیل هنوز آماده نیست." tone="muted" />;
+  }
+
+  return <LinearConversionTool tool={tool} group={group} />;
+}
+
+function LinearConversionTool({
+  tool,
+  group,
+}: {
+  tool: ToolWithCategory;
+  group: UnitGroupId;
+}) {
+  const units = unitGroups[group];
   const [amount, setAmount] = useState("1");
   const [from, setFrom] = useState(units[0].id);
   const [to, setTo] = useState(units[1]?.id ?? units[0].id);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const value = parseNumber(amount);
   const converted = Number.isFinite(value)
-    ? convertUnit(group as UnitGroupId, value, from, to)
+    ? convertUnit(group, value, from, to)
     : null;
+  const fromLabel = units.find((unit) => unit.id === from)?.label ?? "";
+  const toLabel = units.find((unit) => unit.id === to)?.label ?? "";
+  const result =
+    converted === null
+      ? null
+      : `${amount} ${fromLabel} معادل ${formatNumber(converted, 6)} ${toLabel}`;
+  const allUnits =
+    Number.isFinite(value)
+      ? units
+          .map((unit) => ({
+            label: unit.label,
+            value: convertUnit(group, value, from, unit.id),
+          }))
+          .filter((item): item is { label: string; value: number } => item.value !== null)
+      : [];
+  const { entries, clearHistory } = useRememberResultHistory({
+    enabled: hasInteracted && historyToolUrls.has(tool.url),
+    result,
+    title: tool.title,
+    url: tool.url,
+  });
+
+  function updateAmount(next: string) {
+    setHasInteracted(true);
+    setAmount(next);
+  }
+
+  function updateFrom(next: string) {
+    setHasInteracted(true);
+    setFrom(next);
+  }
+
+  function updateTo(next: string) {
+    setHasInteracted(true);
+    setTo(next);
+  }
 
   return (
     <ToolCardShell>
@@ -860,22 +1342,169 @@ function ConversionTool({ url }: { url: string }) {
           <Label className="mb-2 block">مقدار</Label>
           <Input
             value={amount}
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => updateAmount(event.target.value)}
             className="tool-input"
           />
         </div>
-        <UnitSelect label="از" units={units} value={from} onChange={setFrom} />
-        <UnitSelect label="به" units={units} value={to} onChange={setTo} />
+        <UnitSelect label="از" units={units} value={from} onChange={updateFrom} />
+        <UnitSelect label="به" units={units} value={to} onChange={updateTo} />
+      </div>
+      <div className="conversion-toolbar">
+        <Button
+          type="button"
+          variant="outline"
+          className="bn632-hover"
+          title="جابه‌جایی واحدها"
+          aria-label="جابه‌جایی واحدها"
+          onClick={() => {
+            setHasInteracted(true);
+            setFrom(to);
+            setTo(from);
+          }}
+        >
+          <ArrowLeftRight />
+          جابه‌جایی
+        </Button>
+        <div className="conversion-presets">
+          {(conversionPresets[group] ?? []).map((preset) => (
+            <button
+              key={`${preset.amount}-${preset.from}-${preset.to}`}
+              type="button"
+              onClick={() => {
+                setHasInteracted(true);
+                setAmount(preset.amount);
+                setFrom(preset.from);
+                setTo(preset.to);
+              }}
+            >
+              {preset.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
+      {allUnits.length > 0 && (
+        <section className="all-units-table" aria-label="همه واحدها">
+          <div className="tool-subheading">همه واحدها برای مقدار وارد شده</div>
+          <div className="result-grid">
+            {allUnits.map((item) => (
+              <div key={item.label} className="result-item">
+                <div className="result-label">{item.label}</div>
+                <div className="result-value">{formatNumber(item.value, 8)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
+      />
+    </ToolCardShell>
+  );
+}
+
+function NumberBaseConversionTool({ tool }: { tool: ToolWithCategory }) {
+  const [value, setValue] = useState("255");
+  const [from, setFrom] = useState<NumberBaseId>("decimal");
+  const [to, setTo] = useState<NumberBaseId>("hex");
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const converted = convertNumberBase(toEnglishDigits(value), from, to);
+  const fromLabel = numberBaseUnits.find((unit) => unit.id === from)?.label;
+  const toLabel = numberBaseUnits.find((unit) => unit.id === to)?.label;
+  const result =
+    converted === null
+      ? "عدد وارد شده با مبنای انتخاب شده سازگار نیست."
+      : `${value} در مبنای ${fromLabel} برابر ${converted} در مبنای ${toLabel} است.`;
+  const allBases = numberBaseUnits.flatMap((unit) => {
+    const convertedValue = convertNumberBase(toEnglishDigits(value), from, unit.id);
+
+    return convertedValue === null
+      ? []
+      : [{ label: unit.label, value: convertedValue }];
+  });
+  const { entries, clearHistory } = useRememberResultHistory({
+    enabled: hasInteracted && converted !== null,
+    result,
+    title: tool.title,
+    url: tool.url,
+  });
+
+  return (
+    <ToolCardShell>
+      <div className="tool-field-grid">
+        <div className="toolbo-field">
+          <Label className="mb-2 block">عدد</Label>
+          <Input
+            value={value}
+            onChange={(event) => {
+              setHasInteracted(true);
+              setValue(event.target.value);
+            }}
+            dir="ltr"
+            className="tool-input"
+          />
+        </div>
+        <NumberBaseSelect
+          label="از مبنا"
+          value={from}
+          onChange={(next) => {
+            setHasInteracted(true);
+            setFrom(next);
+          }}
+        />
+        <NumberBaseSelect
+          label="به مبنا"
+          value={to}
+          onChange={(next) => {
+            setHasInteracted(true);
+            setTo(next);
+          }}
+        />
+      </div>
+      <div className="conversion-toolbar">
+        <Button
+          type="button"
+          variant="outline"
+          className="bn632-hover"
+          title="جابه‌جایی مبناها"
+          aria-label="جابه‌جایی مبناها"
+          onClick={() => {
+            setHasInteracted(true);
+            setFrom(to);
+            setTo(from);
+          }}
+        >
+          <ArrowLeftRight />
+          جابه‌جایی
+        </Button>
       </div>
       <ResultBox
-        result={
-          converted === null
-            ? null
-            : `${amount} ${units.find((unit) => unit.id === from)?.label} معادل ${formatNumber(
-                converted,
-                6
-              )} ${units.find((unit) => unit.id === to)?.label}`
-        }
+        result={result}
+        title={tool.title}
+        filenameSlug={tool.slug}
+        actions={converted !== null}
+      />
+      {allBases.length > 0 && (
+        <section className="all-units-table" aria-label="همه مبناها">
+          <div className="tool-subheading">نمایش در همه مبناها</div>
+          <div className="result-grid">
+            {allBases.map((item) => (
+              <div key={item.label} className="result-item">
+                <div className="result-label">{item.label}</div>
+                <div className="result-value" dir="ltr">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
       />
     </ToolCardShell>
   );
@@ -892,11 +1521,13 @@ function UnitSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const id = useId();
+
   return (
     <div className="toolbo-field">
-      <Label className="mb-2 block">{label}</Label>
+      <Label htmlFor={id} className="mb-2 block">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="tool-input h-10 w-full">
+        <SelectTrigger id={id} className="tool-input h-10 w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -911,26 +1542,33 @@ function UnitSelect({
   );
 }
 
-function TodayTool() {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(new Date()), 1000);
-    return () => window.clearInterval(timer);
-  }, []);
-
-  const jalaali = gregorianToJalaaliDate(now);
+function NumberBaseSelect({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: NumberBaseId;
+  onChange: (value: NumberBaseId) => void;
+}) {
+  const id = useId();
 
   return (
-    <ToolCardShell>
-      <div className="grid gap-4 md:grid-cols-3">
-        <InfoTile label="ساعت" value={now.toLocaleTimeString("fa-IR")} />
-        <InfoTile label="شمسی" value={`${jalaali.jd} ${persianMonths[jalaali.jm - 1]} ${jalaali.jy}`} />
-        <InfoTile label="میلادی" value={now.toLocaleDateString("en-CA")} />
-        <InfoTile label="قمری" value={formatIslamic(now)} />
-        <InfoTile label="تایم استمپ" value={Math.floor(now.getTime() / 1000).toString()} />
-      </div>
-    </ToolCardShell>
+    <div className="toolbo-field">
+      <Label htmlFor={id} className="mb-2 block">{label}</Label>
+      <Select value={value} onValueChange={(next) => onChange(next as NumberBaseId)}>
+        <SelectTrigger id={id} className="tool-input h-10 w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {numberBaseUnits.map((unit) => (
+            <SelectItem key={unit.id} value={unit.id}>
+              {unit.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
 
@@ -988,7 +1626,7 @@ function CalendarTool() {
   );
 }
 
-function DateConvertTool() {
+function DateConvertTool({ tool }: { tool: ToolWithCategory }) {
   const today = new Date();
   const jToday = gregorianToJalaaliDate(today);
   const [mode, setMode] = useState("gregorian");
@@ -1004,12 +1642,19 @@ function DateConvertTool() {
         : jalaaliToGregorianDate(parseNumber(jy), parseNumber(jm), parseNumber(jd));
     if (!target) return null;
     return [
-      { label: "شمسی", value: formatJalaali(target) },
-      { label: "میلادی", value: formatGregorian(target) },
-      { label: "قمری", value: formatIslamic(target) },
+      { label: "تاریخ شمسی", value: formatJalaali(target) },
+      { label: "تاریخ میلادی", value: formatGregorian(target) },
+      { label: "تاریخ قمری", value: formatIslamic(target) },
+      { label: "روز هفته", value: weekdayFormatter.format(target) },
       { label: "تایم استمپ", value: Math.floor(target.getTime() / 1000).toString() },
     ];
   }, [date, jd, jm, jy, mode]);
+  const { entries, clearHistory } = useRememberResultHistory({
+    enabled: true,
+    result: converted,
+    title: tool.title,
+    url: tool.url,
+  });
 
   return (
     <ToolCardShell>
@@ -1039,15 +1684,35 @@ function DateConvertTool() {
           <LabeledInput label="روز" value={jd} onChange={setJd} />
         </div>
       )}
-      <ResultBox result={converted} />
+      <ResultBox result={converted} title={tool.title} filenameSlug={tool.slug} />
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
+      />
     </ToolCardShell>
   );
 }
 
-function AgeTool() {
+function AgeTool({ tool }: { tool: ToolWithCategory }) {
   const [birth, setBirth] = useState("2000-01-01");
   const date = gregorianDateFromInput(birth);
   const diff = date ? diffDates(date, new Date()) : null;
+  const result = diff
+    ? [
+        { label: "سال", value: toPersianDigits(diff.years) },
+        { label: "ماه", value: toPersianDigits(diff.months) },
+        { label: "روز", value: toPersianDigits(diff.days) },
+        { label: "کل روزها", value: formatNumber(diff.totalDays, 0) },
+      ]
+    : "تاریخ معتبر وارد کنید.";
+  const { entries, clearHistory } = useRememberResultHistory({
+    enabled: true,
+    result,
+    title: tool.title,
+    url: tool.url,
+  });
 
   return (
     <ToolCardShell>
@@ -1060,17 +1725,12 @@ function AgeTool() {
           className="tool-input"
         />
       </div>
-      <ResultBox
-        result={
-          diff
-            ? [
-                { label: "سال", value: toPersianDigits(diff.years) },
-                { label: "ماه", value: toPersianDigits(diff.months) },
-                { label: "روز", value: toPersianDigits(diff.days) },
-                { label: "کل روزها", value: formatNumber(diff.totalDays, 0) },
-              ]
-            : "تاریخ معتبر وارد کنید."
-        }
+      <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
       />
     </ToolCardShell>
   );
@@ -1419,9 +2079,28 @@ function TextTransformTool() {
   );
 }
 
-function TextCounterTool() {
+function TextCounterTool({ tool }: { tool: ToolWithCategory }) {
   const [text, setText] = useState("");
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+  const result = [
+    { label: "کاراکتر با فاصله", value: formatNumber(text.length, 0) },
+    {
+      label: "کاراکتر بدون فاصله",
+      value: formatNumber(text.replace(/\s/g, "").length, 0),
+    },
+    { label: "کلمه", value: formatNumber(words, 0) },
+    { label: "جمله", value: formatNumber((text.match(/[.!؟?]+/g) ?? []).length, 0) },
+    {
+      label: "پاراگراف",
+      value: formatNumber(text.trim() ? text.trim().split(/\n\s*\n/).length : 0, 0),
+    },
+    {
+      label: "زمان مطالعه",
+      value: words === 0 ? "۰ دقیقه" : `${toPersianDigits(Math.max(1, Math.ceil(words / 200)))} دقیقه`,
+    },
+  ];
+  const { entries, addHistory, clearHistory } = useToolHistory(tool.url);
+  const summary = `${tool.title}\n${resultToText(result)}`;
 
   return (
     <ToolCardShell>
@@ -1430,12 +2109,23 @@ function TextCounterTool() {
         onChange={(event) => setText(event.target.value)}
         className="tool-input min-h-44"
       />
-      <ResultBox
-        result={[
-          { label: "کلمه", value: formatNumber(words, 0) },
-          { label: "کاراکتر", value: formatNumber(text.length, 0) },
-          { label: "جمله", value: formatNumber((text.match(/[.!؟?]+/g) ?? []).length, 0) },
-        ]}
+      <div className="mt-3">
+        <Button
+          type="button"
+          variant="outline"
+          className="bn632-hover"
+          disabled={!text.trim()}
+          onClick={() => addHistory(summary)}
+        >
+          ذخیره خلاصه
+        </Button>
+      </div>
+      <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
       />
     </ToolCardShell>
   );
@@ -1483,13 +2173,14 @@ function LoremTool() {
   );
 }
 
-function PasswordTool() {
+function PasswordTool({ tool }: { tool: ToolWithCategory }) {
   const [length, setLength] = useState("16");
   const [upper, setUpper] = useState(true);
   const [lower, setLower] = useState(true);
   const [numbers, setNumbers] = useState(true);
   const [symbols, setSymbols] = useState(true);
   const [password, setPassword] = useState("");
+  const { entries, addHistory, clearHistory } = useToolHistory(tool.url);
   const options = [
     { label: "حروف بزرگ", value: upper, set: setUpper, chars: "ABCDEFGHJKLMNPQRSTUVWXYZ" },
     { label: "حروف کوچک", value: lower, set: setLower, chars: "abcdefghijkmnopqrstuvwxyz" },
@@ -1527,8 +2218,23 @@ function PasswordTool() {
           تولید پسورد
         </Button>
         <CopyButton text={password} />
+        <Button
+          type="button"
+          variant="outline"
+          className="bn632-hover"
+          disabled={!password || password.includes("حداقل")}
+          onClick={() => addHistory(`${tool.title}\n${password}`)}
+        >
+          ذخیره در تاریخچه
+        </Button>
       </div>
-      <ResultBox result={password} />
+      <ResultBox result={password} title={tool.title} filenameSlug={tool.slug} />
+      <ToolHistory
+        title={tool.title}
+        url={tool.url}
+        entries={entries}
+        onClear={clearHistory}
+      />
     </ToolCardShell>
   );
 }
@@ -1619,12 +2325,116 @@ function BinaryTool() {
   );
 }
 
-function InfoTile({ label, value }: { label: string; value: string }) {
+function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
+  const { isDark } = useTheme();
+
+  if (
+    !metadata ||
+    (!metadata.status &&
+      !metadata.lastUpdated &&
+      !metadata.sourceLabel &&
+      !metadata.limitations?.length)
+  ) {
+    return null;
+  }
+
+  const statusLabel =
+    metadata.status === "stable"
+      ? "پایدار"
+      : metadata.status === "beta"
+        ? "آزمایشی"
+        : "نیازمند بازبینی";
+
   return (
-    <div className="result-item">
-      <div className="result-label">{label}</div>
-      <div className="result-value">{value}</div>
+    <div className={cn("info tool-trust", isDark && "info_D")}>
+      <div className="tool-trust-title">اطلاعات ابزار</div>
+      {metadata.status && (
+        <div>
+          <span>وضعیت: </span>
+          <strong>{statusLabel}</strong>
+        </div>
+      )}
+      {metadata.lastUpdated && (
+        <div>
+          <span>بروزرسانی: </span>
+          <strong>{metadata.lastUpdated}</strong>
+        </div>
+      )}
+      {metadata.sourceLabel && metadata.sourceUrl && (
+        <a href={metadata.sourceUrl} target="_blank" rel="noreferrer">
+          {metadata.sourceLabel}
+        </a>
+      )}
+      {metadata.limitations?.slice(0, 1).map((item) => (
+        <div key={item} className="tool-trust-note">
+          {item}
+        </div>
+      ))}
     </div>
+  );
+}
+
+function ToolExplainer({
+  tool,
+  metadata,
+}: {
+  tool: ToolWithCategory;
+  metadata?: ToolMetadata;
+}) {
+  if (
+    !metadata ||
+    (!metadata.method &&
+      !metadata.formula &&
+      !metadata.examples?.length &&
+      !metadata.limitations?.length &&
+      !metadata.relatedTools?.length)
+  ) {
+    return null;
+  }
+
+  const related = metadata.relatedTools
+    ?.map((url) => allTools.find((item) => item.url === url))
+    .filter((item): item is ToolWithCategory => Boolean(item));
+
+  return (
+    <section className="tool-explainer" aria-label={`توضیح ${tool.title}`}>
+      <div className="tool-subheading">درباره این ابزار</div>
+      <div className="tool-explainer-grid">
+        {metadata.method && (
+          <div>
+            <strong>روش</strong>
+            <p>{metadata.method}</p>
+          </div>
+        )}
+        {metadata.formula && (
+          <div>
+            <strong>فرمول</strong>
+            <p dir="ltr">{metadata.formula}</p>
+          </div>
+        )}
+        {metadata.examples?.slice(0, 1).map((example) => (
+          <div key={example.label}>
+            <strong>مثال</strong>
+            <p>{example.expectedOutputSummary}</p>
+          </div>
+        ))}
+        {metadata.limitations?.length ? (
+          <div>
+            <strong>محدودیت</strong>
+            <p>{metadata.limitations[0]}</p>
+          </div>
+        ) : null}
+      </div>
+      {related && related.length > 0 && (
+        <div className="tool-explainer-related">
+          {related.map((item) => (
+            <Link key={item.url} href={item.url}>
+              {item.title}
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -1639,10 +2449,13 @@ function LabeledInput({
   onChange: (value: string) => void;
   type?: string;
 }) {
+  const id = useId();
+
   return (
     <div className="toolbo-field">
-      <Label className="mb-2 block">{label}</Label>
+      <Label htmlFor={id} className="mb-2 block">{label}</Label>
       <Input
+        id={id}
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
