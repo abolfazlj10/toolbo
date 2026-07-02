@@ -11,8 +11,12 @@ node_modules
 .DS_Store
 dist
 dist-ssr
+.next
+out
 coverage
 *.local
+*.tsbuildinfo
+next-env.d.ts
 
 /cypress/videos/
 /cypress/screenshots/
