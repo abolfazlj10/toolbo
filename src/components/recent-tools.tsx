@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Clock, Trash2 } from "lucide-react";
+import { ArrowUpLeft, History, Trash2, Wrench } from "lucide-react";
 import { useRecentTools } from "@/components/recent-tools-provider";
-import { Button } from "@/components/ui/button";
+import { toolIcons } from "@/lib/tool-icons";
 
 export function RecentToolsSection() {
   const { recentTools, clearRecentTools } = useRecentTools();
@@ -15,26 +15,32 @@ export function RecentToolsSection() {
   return (
     <section className="recent-tools-section" aria-label="ابزارهای اخیر">
       <div className="recent-tools-heading">
-        <h3 className="TS">ابزارهای اخیر</h3>
-        <Button
+        <div className="recent-tools-title">
+          <History size={18} aria-hidden="true" />
+          <h2>ادامه از آخرین ابزارها</h2>
+        </div>
+        <button
           type="button"
-          variant="outline"
-          size="sm"
+          className="text-link"
           title="پاک کردن ابزارهای اخیر"
           aria-label="پاک کردن ابزارهای اخیر"
           onClick={clearRecentTools}
         >
-          <Trash2 />
-          پاک کردن
-        </Button>
+          <Trash2 size={14} aria-hidden="true" />
+          پاک کردن سابقه
+        </button>
       </div>
       <div className="recent-tools-strip">
-        {recentTools.map((tool) => (
-          <Link key={tool.url} href={tool.url} className="recent-tool-pill">
-            <Clock aria-hidden="true" />
-            <span>{tool.title}</span>
-          </Link>
-        ))}
+        {recentTools.map((tool) => {
+          const Icon = toolIcons[tool.url] ?? Wrench;
+          return (
+            <Link key={tool.url} href={tool.url} className="recent-tool-pill">
+              <span className="recent-tool-icon"><Icon size={17} strokeWidth={1.7} aria-hidden="true" /></span>
+              <bdi>{tool.title}</bdi>
+              <ArrowUpLeft className="recent-tool-arrow" size={14} aria-hidden="true" />
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

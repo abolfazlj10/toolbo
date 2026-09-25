@@ -56,7 +56,9 @@ export function swapDigits(value: string, target: "fa" | "en") {
 }
 
 export function parseNumber(value: string | number | undefined) {
-  const normalized = toEnglishDigits(String(value ?? "")).replace(/,/g, "");
+  const normalized = toEnglishDigits(String(value ?? ""))
+    .replace(/[,٬]/g, "")
+    .replace(/٫/g, ".");
   const numeric = Number(normalized);
   return Number.isFinite(numeric) ? numeric : NaN;
 }

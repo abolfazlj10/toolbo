@@ -1,19 +1,33 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Dialog, Popover } from "radix-ui";
+import { ArrowLeft, ArrowUpLeft, ChevronDown, Clock3, Command, Heart, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { Brand } from "@/components/brand";
 import { useFavorites } from "@/components/favorites-provider";
 import { useRecentTools } from "@/components/recent-tools-provider";
 import { useTheme } from "@/components/theme-provider";
-import { categories, getSearchResults } from "@/lib/tool-data";
-import { cn } from "@/lib/utils";
+import { allTools, categories, getSearchResults } from "@/lib/tool-data";
+import { getCategoryIcon } from "@/lib/category-icons";
+import { getToolIcon } from "@/lib/tool-icons";
+import { normalizeSearchText } from "@/lib/search-utils";
+import { featuredPaths } from "@/lib/design-data";
+import { toPersianDigits } from "@/lib/tool-utils";
+
+type LibraryView = "search" | "favorites" | "recent";
+
+export function openToolSearch() {
+  window.dispatchEvent(new Event("toolbo:open-search"));
+}
 
 export function SiteShell({ children }: { children: ReactNode }) {
   return (
     <div className="site-shell">
+      <a className="skip-link" href="#main-content">پرش به محتوای اصلی</a>
       <SiteHeader />
-      <main>{children}</main>
+      <main id="main-content" tabIndex={-1}>{children}</main>
       <SiteFooter />
     </div>
   );
@@ -21,402 +35,139 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
 function SiteHeader() {
   const { isDark, toggleTheme } = useTheme();
-  const { favorites } = useFavorites();
-  const { recentTools } = useRecentTools();
-  const [search, setSearch] = useState("");
-  const [showTools, setShowTools] = useState(false);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [showRecentTools, setShowRecentTools] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [fixedNav, setFixedNav] = useState(false);
-  const [containerNav, setContainerNav] = useState(true);
-  const results = useMemo(() => getSearchResults(search), [search]);
-  const hasResults =
-    results.categories.length > 0 ||
-    results.tools.length > 0 ||
-    results.recommended.length > 0;
+  const [view, setView] = useState<LibraryView | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const updateNavState = () => {
-      setFixedNav(
-        window.innerWidth > 1000 && document.documentElement.scrollTop >= 170
-      );
-      setContainerNav(window.innerWidth > 900);
+    const openSearch = () => setView("search");
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openSearch();
+      }
     };
-
-    updateNavState();
-    window.addEventListener("resize", updateNavState);
-    window.addEventListener("scroll", updateNavState);
-
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("toolbo:open-search", openSearch);
     return () => {
-      window.removeEventListener("resize", updateNavState);
-      window.removeEventListener("scroll", updateNavState);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("toolbo:open-search", openSearch);
     };
   }, []);
 
   return (
-    <div className={containerNav ? "container_m" : ""}>
-      <div className="nav" id="top">
-        <Link className="SB" href="/" title="تولبو" aria-label="تولبو">
-          <div className={cn("N_T", isDark && "N_C_D")}>
-            <Image
-              src="/ToolBo.png"
-              alt="icon brand"
-              width={45}
-              height={45}
-              priority
-              style={{ height: "auto" }}
-            />
+    <>
+      <header className="site-header">
+        <div className="container_m header-inner">
+          <Brand />
+          <nav className="desktop-nav" aria-label="ناوبری اصلی">
+            <Link href="/" className={pathname === "/" ? "nav-active" : ""} aria-current={pathname === "/" ? "page" : undefined}>خانه</Link>
+            <Popover.Root open={menuOpen} onOpenChange={setMenuOpen}>
+              <Popover.Trigger className="nav-categories">دسته‌بندی ابزارها <ChevronDown size={14} /></Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content className="category-popover" aria-label="دسته‌بندی ابزارها" sideOffset={24} align="center">
+                  <span className="eyebrow">یک ابزار برای هر کار</span>
+                  <div className="category-menu-grid">{categories.map(category => {
+                    const Icon = getCategoryIcon(category.url);
+                    return <Link href={category.url} key={category.url} onClick={() => setMenuOpen(false)}><Icon size={19} /><span>{category.title}</span><small>{toPersianDigits(category.item.length)}</small></Link>;
+                  })}</div>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+            <button onClick={() => setView("recent")}>ابزارهای اخیر</button>
+          </nav>
+          <div className="header-actions">
+            <button className="icon-button header-search" aria-label="جستجوی ابزارها" onClick={() => setView("search")}><Search size={19} /></button>
+            <button className="icon-button" aria-label={isDark ? "فعال کردن حالت روشن" : "فعال کردن حالت تیره"} onClick={toggleTheme}>{isDark ? <Sun size={19} /> : <Moon size={19} />}</button>
+            <span className="header-divider" />
+            <button className="saved-button" aria-label="ابزارهای من، ذخیره‌شده‌ها" onClick={() => setView("favorites")}><Heart size={17} aria-hidden="true" /><span>ابزارهای من</span></button>
+            <Popover.Root>
+              <Popover.Trigger className="icon-button mobile-menu-button" aria-label="باز کردن فهرست"><Menu size={22} /></Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content className="mobile-menu category-popover" aria-label="فهرست ابزارها" sideOffset={16} align="end">
+                  <div className="category-menu-grid">{categories.map(category => {
+                    const Icon = getCategoryIcon(category.url);
+                    return <Popover.Close asChild key={category.url}><Link href={category.url}><Icon size={18} />{category.title}</Link></Popover.Close>;
+                  })}</div>
+                  <Popover.Close asChild><button className="mobile-recent" onClick={() => setView("recent")}><Clock3 size={18} />ابزارهای اخیر</button></Popover.Close>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
           </div>
-        </Link>
-
-        <div className={cn("N_C", isDark && "N_C_D")}>
-          <Link href="/" title="تولبو">
-            <h1 className="B">TOOLBO</h1>
-          </Link>
-
-          <div className="S">
-            <input
-              className={cn("S_I", isDark && "S_I_D")}
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              type="search"
-              name="searchTool"
-              placeholder="دنبال چی میگردی..."
-            />
-            {search.trim().length > 1 && (
-              <SearchPanel
-                hasResults={hasResults}
-                results={results}
-                isDark={isDark}
-                onSelect={() => setSearch("")}
-              />
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className={cn("T", isDark && "TD")}
-            title={isDark ? "تیره" : "روشن"}
-            aria-label={isDark ? "تیره" : "روشن"}
-          >
-            <span className="TI fontIconNew">&#xe900;</span>
-            <span className="TI fontIconNew">&#xe901;</span>
-            <span className={cn("MT", isDark && "MTD")} />
-          </button>
         </div>
+      </header>
+      <LibraryDialog view={view} onClose={() => setView(null)} />
+    </>
+  );
+}
 
-        <div className={cn("N_B", fixedNav && "fixNav container_m", isDark && "N_B_D")}>
-          <div
-            className="N_B_OM"
-            onMouseEnter={() => setShowTools(true)}
-            onMouseLeave={() => {
-              setShowTools(false);
-              setActiveCategory(null);
+function LibraryDialog({ view, onClose }: { view: LibraryView | null; onClose: () => void }) {
+  const { favorites } = useFavorites();
+  const { recentTools } = useRecentTools();
+  const [query, setQuery] = useState("");
+  const [active, setActive] = useState(-1);
+  const returnFocus = useRef<HTMLElement | null>(null);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const results = useMemo(() => getSearchResults(query), [query]);
+  const suggestions = featuredPaths.flatMap(path => allTools.find(tool => tool.url === path) ?? []);
+  const items = view === "favorites" ? favorites : view === "recent" ? recentTools : query.trim().length >= 2
+    ? [...results.tools, ...results.categories.map(category => ({ title: category.title, sub: `${toPersianDigits(category.item.length)} ابزار در این دسته`, url: category.url })), ...results.recommended.map(item => ({ title: item.title, sub: "پیشنهاد بیرونی · باز شدن در زبانه جدید", url: item.url }))]
+    : query.trim() ? allTools.filter(tool => normalizeSearchText(`${tool.title} ${tool.sub} ${tool.categoryTitle}`).includes(normalizeSearchText(query))) : suggestions;
+  const close = () => { onClose(); setQuery(""); setActive(-1); };
+  const title = view === "favorites" ? "ابزارهای ذخیره‌شده" : view === "recent" ? "از جایی که بودی، ادامه بده" : "دنبال چه ابزاری می‌گردی؟";
+
+  return (
+    <Dialog.Root open={view !== null} onOpenChange={open => { if (!open) close(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="dialog-overlay" />
+        <Dialog.Content className="library-dialog" onOpenAutoFocus={event => {
+          returnFocus.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+          event.preventDefault();
+          const searchInput = window.matchMedia("(min-width: 768px)").matches ? document.querySelector<HTMLInputElement>(".dialog-search input") : null;
+          (searchInput ?? titleRef.current)?.focus();
+        }} onCloseAutoFocus={event => { event.preventDefault(); (returnFocus.current?.isConnected ? returnFocus.current : document.querySelector<HTMLButtonElement>(".header-search"))?.focus(); }}>
+          <div className="dialog-heading"><Dialog.Title ref={titleRef} tabIndex={-1}>{title}</Dialog.Title><Dialog.Close className="icon-button" aria-label="بستن"><X size={20} /></Dialog.Close></div>
+          <Dialog.Description className="sr-only">ابزار دلخواه را انتخاب کن تا صفحه آن باز شود.</Dialog.Description>
+          {view === "search" && <div className="dialog-search"><Search size={21} /><input
+            aria-label="نام ابزار" name="tool-search" autoComplete="off" spellCheck={false} placeholder="مثلاً تبدیل تاریخ، درصد، وام…" value={query}
+            role="combobox" aria-expanded="true" aria-autocomplete="list" aria-controls="tool-search-results" aria-activedescendant={active >= 0 && active < items.length ? `search-result-${active}` : undefined}
+            onChange={event => { setQuery(event.target.value); setActive(-1); }}
+            onKeyDown={event => {
+              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                const next = Math.max(0, Math.min(items.length - 1, active + (event.key === "ArrowDown" ? 1 : -1)));
+                setActive(next);
+                document.getElementById(`search-result-${next}`)?.scrollIntoView({ block: "nearest" });
+              }
+              if (event.key === "Enter") {
+                event.preventDefault();
+                document.getElementById(`search-result-${Math.max(0, active)}`)?.click();
+              }
             }}
-          >
-            <span>دسته بندی ها</span>
-            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
-              &#xe902;
-            </span>
-            {showTools && (
-              <div className={cn("MD showBox", isDark && "MD_D")}>
-                {categories.map((category, index) => (
-                  <div
-                    key={category.url}
-                    className={cn("MD_I", isDark && "MD_ID")}
-                    onMouseEnter={() => setActiveCategory(category.url)}
-                    onFocus={() => setActiveCategory(category.url)}
-                  >
-                    <Link
-                      className="MD_I_T"
-                      href={category.url}
-                      title={`${category.item.length} ابزار محاسباتی`}
-                    >
-                      {category.title}
-                    </Link>
-                    <span className="fontIconNew MD_I_I">&#xe903;</span>
-                    {activeCategory === category.url && (
-                      <div className={cn("MD_I_D", isDark && "MD_I_D_D")}>
-                        {categories[index].item.map((tool) => (
-                          <Link key={tool.url} href={tool.url} title={tool.sub}>
-                            <div className={cn("MD_I_D_I", isDark && "MD_I_D_I_D")}>
-                              {tool.title}
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+          /><kbd>ESC</kbd></div>}
+          <div className="dialog-meta" role="status">{view === "search" && !query.trim() ? "چند پیشنهاد برای شروع" : `${toPersianDigits(items.length)} نتیجه`}</div>
+          <div className="dialog-results" id="tool-search-results" role={view === "search" ? "listbox" : undefined} aria-label={view === "search" ? "نتایج جستجو" : undefined}>
+            {items.map((tool, index) => {
+              const Icon = getToolIcon(tool.url);
+              const external = tool.url.startsWith("https:");
+              return <Link id={`search-result-${index}`} href={tool.url} key={tool.url} role={view === "search" ? "option" : undefined} aria-selected={view === "search" ? active === index : undefined} className={`search-result ${active === index ? "search-result-active" : ""}`} onClick={close} target={external ? "_blank" : undefined} rel={external ? "noreferrer" : undefined}><span className="search-result-icon"><Icon size={21} aria-hidden="true" /></span><span><strong>{tool.title}</strong><small>{tool.sub}</small></span><ArrowLeft size={17} aria-hidden="true" /></Link>;
+            })}
+            {!items.length && <div className="empty-state">{view === "favorites" ? <Heart /> : view === "recent" ? <Clock3 /> : <Search />}<strong>{view === "favorites" ? "جای ابزارهای محبوبت اینجاست" : view === "recent" ? "اولین ابزارت را پیدا کن" : "هنوز چیزی پیدا نکردیم"}</strong><p>{view === "favorites" ? "روی قلب کنار هر ابزار بزن تا اینجا در دسترس باشد." : view === "recent" ? "ابزارهایی که باز می‌کنی، اینجا منتظرت می‌مانند." : "نام کوتاه‌تر یا عبارت دیگری را امتحان کن."}</p></div>}
           </div>
-
-          <div
-            className="N_B_OM"
-            onMouseEnter={() => setShowRecentTools(true)}
-            onMouseLeave={() => setShowRecentTools(false)}
-          >
-            <span>اخیر</span>
-            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
-              &#xe902;
-            </span>
-            {showRecentTools && (
-              <div className={cn("MDF showBox", isDark && "MDF_D")}>
-                {recentTools.length === 0 && <div className="MD_IFDI">خالی</div>}
-                {recentTools.map((item) => (
-                  <Link
-                    key={item.url}
-                    href={item.url}
-                    title={item.sub}
-                    className={cn("MD_IF", isDark && "MD_IFD")}
-                  >
-                    <span className="MD_I_T">{item.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div
-            className="N_B_OM"
-            onMouseEnter={() => setShowFavorites(true)}
-            onMouseLeave={() => setShowFavorites(false)}
-          >
-            <span>مورد علاقه</span>
-            <span className={cn("fontIconNew OM_I", isDark && "OM_I_D")}>
-              &#xe902;
-            </span>
-            {showFavorites && (
-              <div className={cn("MDF showBox", isDark && "MDF_D")}>
-                {favorites.length === 0 && <div className="MD_IFDI">خالی</div>}
-                {favorites.map((item) => (
-                  <Link
-                    key={item.url}
-                    href={item.url}
-                    title={item.sub}
-                    className={cn("MD_IF", isDark && "MD_IFD")}
-                  >
-                    <span className="MD_I_T">{item.title}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button type="button" className="CP" onClick={() => scrollOrNavigate("toolsUsage")}>
-            کاربردی
-          </button>
-          <button
-            type="button"
-            className="CP"
-            onClick={() => scrollOrNavigate("toolsRecomendend")}
-          >
-            پیشنهادی
-          </button>
-          <a href="https://j10-mi9b.vercel.app/" target="_blank" rel="noreferrer">
-            درباره من
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-type SearchResults = ReturnType<typeof getSearchResults>;
-
-function SearchPanel({
-  hasResults,
-  results,
-  isDark,
-  onSelect,
-}: {
-  hasResults: boolean;
-  results: SearchResults;
-  isDark: boolean;
-  onSelect: () => void;
-}) {
-  if (!hasResults) {
-    return (
-      <div className={cn("S_Box S_Box_NotF", isDark && "S_Box_D")}>
-        پیدا نکردیم که ... :(
-      </div>
-    );
-  }
-
-  return (
-    <div className={cn("S_Box", isDark && "S_Box_D")}>
-      {results.categories.map((item) => (
-        <SearchLink
-          key={item.url}
-          href={item.url}
-          title={item.title}
-          subtitle={`${item.item.length} ابزار محاسباتی`}
-          isDark={isDark}
-          onSelect={onSelect}
-        />
-      ))}
-      {results.tools.map((item) => (
-        <SearchLink
-          key={item.url}
-          href={item.url}
-          title={item.title}
-          subtitle={item.sub}
-          isDark={isDark}
-          onSelect={onSelect}
-        />
-      ))}
-      {results.recommended.map((item) => (
-        <a
-          key={item.url}
-          href={item.url}
-          target="_blank"
-          rel="noreferrer"
-          title={item.info}
-          onClick={onSelect}
-          className="S_Item"
-        >
-          <span className="S_Item_T">{item.title}</span>
-          <span className={cn("S_Item_S", isDark && "S_Item_SD")}>{item.info}</span>
-        </a>
-      ))}
-    </div>
-  );
-}
-
-function SearchLink({
-  href,
-  title,
-  subtitle,
-  isDark,
-  onSelect,
-}: {
-  href: string;
-  title: string;
-  subtitle: string;
-  isDark: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <Link href={href} title={subtitle} onClick={onSelect} className="S_Item">
-      <span className="S_Item_T">{title}</span>
-      <span className={cn("S_Item_S", isDark && "S_Item_SD")}>{subtitle}</span>
-    </Link>
+          <div className="dialog-footer"><span>کوچک، کاربردی، همیشه در دسترس.</span><span dir="ltr"><Command size={12} /> K</span></div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
 function SiteFooter() {
-  const { isDark } = useTheme();
-
   return (
-    <footer className="footer">
-      <button
-        type="button"
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        title="بالا رفتن"
-        className={cn("UP fontIconNew CP", isDark && "UP_D")}
-      >
-        &#xf077;
-      </button>
-      <div className="BC">
-        <div className="TB">
-          <div className="TBR">
-            <Link href="/">
-              <Image
-                className="TBRI"
-                src="/ToolBo.png"
-                alt="icon brand"
-                width={40}
-                height={40}
-                style={{ height: "auto" }}
-              />
-            </Link>
-            <div className="TBRV">v 3.0.0</div>
-          </div>
-          <div className="TBC">
-            اپلیکیشن تولبو جهت صرفه جویی در زمان کارهای روزمره با توسعه ابزار های
-            کاربردی ایجاد شده است و میتوانید با انتخاب ابزار مورد نظر از آن استفاده
-            کنید.
-          </div>
-          <div className="TBL">
-            <button type="button" className="CP" onClick={() => scrollOrNavigate("toolsUsage")}>
-              کاربردی
-            </button>
-            <button
-              type="button"
-              className="CP"
-              onClick={() => scrollOrNavigate("toolsRecomendend")}
-            >
-              پیشنهادی
-            </button>
-            <a href="https://j10-mi9b.vercel.app/" className="AF" target="_blank" rel="noreferrer">
-              درباره من
-            </a>
-          </div>
-        </div>
-        <div className="LC" />
-        <div className="BD">
-          <div>
-            <Link href="/" title="تولبو">
-              <h1 className="B">TOOLBO</h1>
-            </Link>
-          </div>
-          <div title="ابوالفضل جمشیدی نژاد">توسعه داده شده توسط ابوالفضل جمشیدی نژاد</div>
-        </div>
-        <div className="BB">
-          <h1 className="B">TOOLBO</h1>
-        </div>
-        <div className="CIS">
-          <a
-            style={{ color: "#2AABEE" }}
-            href="http://t.me/abolfazl_j10"
-            target="_blank"
-            rel="noreferrer"
-            className="icon"
-            aria-label="Telegram"
-            dangerouslySetInnerHTML={{ __html: "&#xea95;" }}
-          />
-          <a
-            href="http://github.com/abolfazlj10"
-            target="_blank"
-            rel="noreferrer"
-            className="icon"
-            aria-label="GitHub"
-            dangerouslySetInnerHTML={{ __html: "&#xeab0;" }}
-          />
-          <a
-            style={{ color: "#0A66C2" }}
-            href="http://linkedin.com/in/abolfazljamshidi/"
-            target="_blank"
-            rel="noreferrer"
-            className="icon"
-            aria-label="LinkedIn"
-            dangerouslySetInnerHTML={{ __html: "&#xf0e1;" }}
-          />
-          <a
-            style={{ color: "#FF5733" }}
-            href="mailto:abolfazl.j.dev@gmail.com"
-            target="_blank"
-            rel="noreferrer"
-            className="icon"
-            aria-label="Email"
-            dangerouslySetInnerHTML={{ __html: "&#xe903;" }}
-          />
-        </div>
+    <footer className="site-footer">
+      <div className="container_m">
+        <div className="footer-top"><div><Brand /><p>ابزارهای کوچک. فرصت‌های بزرگ‌تر.<br />برای ساده‌تر شدن روزهای تو ساخته شده.</p></div><div className="footer-links"><Link href="/#toolsUsage">همه ابزارها</Link><Link href="/#toolsRecomendend">پیشنهادهای تولبو</Link><a href="https://j10-mi9b.vercel.app/" target="_blank" rel="noreferrer">درباره سازنده <ArrowUpLeft size={14} /></a></div><button className="back-top" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} aria-label="رفتن به بالای صفحه"><ArrowUpLeft size={22} /></button></div>
+        <div className="footer-bottom"><span>ساخته‌شده با دقت، توسط ابوالفضل جمشیدی‌نژاد</span><span lang="en" dir="ltr">A little less effort. A little more life.</span><span dir="ltr">© {new Date().getFullYear()} Toolbo</span></div>
       </div>
     </footer>
   );
-}
-
-function scrollOrNavigate(id: string) {
-  const target = document.getElementById(id);
-
-  if (target) {
-    target.scrollIntoView();
-    return;
-  }
-
-  window.location.href = `/#${id}`;
 }

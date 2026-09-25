@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CalendarPlus, RotateCcw } from "lucide-react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { CalendarPlus, Check, RotateCcw } from "lucide-react";
 import { ResultActions } from "@/components/result-actions";
 import { TodayDashboard } from "@/components/today-dashboard";
 import { Button } from "@/components/ui/button";
@@ -96,9 +96,14 @@ function DailyResultBox({
   if (!result) return null;
 
   return (
-    <div className={cn("Result", isDark && "Result_D")}>
+    <div
+      className={cn("Result", isDark && "Result_D")}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       <div className="title_tool result-title-row">
-        <span>نتیجه</span>
+        <span className="result-heading-label"><Check size={18} aria-hidden="true" />نتیجه آماده است</span>
         <ResultActions title={title} text={text} filenameSlug={filenameSlug} />
       </div>
       {typeof result === "string" ? (
@@ -179,11 +184,16 @@ function LabeledDateInput({
   onChange: (value: string) => void;
   type?: "date" | "datetime-local";
 }) {
+  const id = useId();
+
   return (
     <div className="toolbo-field">
-      <Label className="mb-2 block">{label}</Label>
+      <Label htmlFor={id} className="mb-2 block">{label}</Label>
       <Input
+        id={id}
+        name={label.toLowerCase().replace(/\s+/g, "-")}
         type={type}
+        autoComplete="off"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="tool-input"
@@ -201,11 +211,13 @@ function TimeZoneSelect({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const id = useId();
+
   return (
     <div className="toolbo-field">
-      <Label className="mb-2 block">{label}</Label>
+      <Label htmlFor={id} className="mb-2 block">{label}</Label>
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="tool-input h-10 w-full">
+        <SelectTrigger id={id} className="tool-input h-10 w-full">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -255,6 +267,7 @@ export function TodayDashboardTool() {
 export function HolidayTool() {
   const currentYear = gregorianToJalaaliDate(new Date()).jy;
   const [year, setYear] = useState(String(currentYear));
+  const yearId = useId();
   const parsedYear = Math.max(1, Math.trunc(parseNumber(year)) || currentYear);
   const rows = getFixedHolidayRows(parsedYear);
   const result: ResultLine[] = [
@@ -270,12 +283,16 @@ export function HolidayTool() {
     <div className="daily-tool-stack">
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">سال شمسی</Label>
+          <Label htmlFor={yearId} className="mb-2 block">سال شمسی</Label>
           <Input
+            id={yearId}
+            name="jalaali-year"
+            type="text"
             value={year}
             onChange={(event) => setYear(event.target.value)}
             className="tool-input"
             inputMode="numeric"
+            autoComplete="off"
           />
         </div>
       </div>
@@ -416,6 +433,8 @@ export function DateOffsetTool() {
   const [date, setDate] = useState(formatGregorian(new Date()));
   const [days, setDays] = useState("7");
   const [mode, setMode] = useState("add");
+  const daysId = useId();
+  const modeId = useId();
   const baseDate = gregorianDateFromInput(date);
   const parsedDays = Math.max(0, Math.trunc(parseNumber(days)) || 0);
   const targetDate = baseDate
@@ -439,18 +458,22 @@ export function DateOffsetTool() {
       <div className="tool-field-grid">
         <LabeledDateInput label="تاریخ مبنا" value={date} onChange={setDate} />
         <div className="toolbo-field">
-          <Label className="mb-2 block">تعداد روز</Label>
+          <Label htmlFor={daysId} className="mb-2 block">تعداد روز</Label>
           <Input
+            id={daysId}
+            name="date-offset-days"
+            type="text"
             value={days}
             onChange={(event) => setDays(event.target.value)}
             inputMode="numeric"
+            autoComplete="off"
             className="tool-input"
           />
         </div>
         <div className="toolbo-field">
-          <Label className="mb-2 block">عملیات</Label>
+          <Label htmlFor={modeId} className="mb-2 block">عملیات</Label>
           <Select value={mode} onValueChange={setMode}>
-            <SelectTrigger className="tool-input h-10 w-full">
+            <SelectTrigger id={modeId} className="tool-input h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -557,7 +580,7 @@ export function TimeZoneDifferenceTool() {
           className="bn632-hover"
           onClick={() => setReference(formatDateTimeLocalInput(new Date()))}
         >
-          <RotateCcw />
+          <RotateCcw aria-hidden="true" />
           زمان فعلی
         </Button>
       </div>
@@ -576,6 +599,7 @@ export function CountdownTool() {
   const effectiveNow = now ?? fallbackNow;
   const [target, setTarget] = useState(formatGregorian(getDefaultCountdownDate(fallbackNow)));
   const [label, setLabel] = useState("رویداد مهم");
+  const labelId = useId();
   const targetDate = gregorianDateFromInput(target);
   const presets = useMemo(() => getCountdownPresets(effectiveNow), [effectiveNow]);
   const duration =
@@ -599,8 +623,11 @@ export function CountdownTool() {
     <div className="daily-tool-stack">
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">عنوان</Label>
+          <Label htmlFor={labelId} className="mb-2 block">عنوان</Label>
           <Input
+            id={labelId}
+            name="countdown-title"
+            autoComplete="off"
             value={label}
             onChange={(event) => setLabel(event.target.value)}
             className="tool-input"
@@ -620,7 +647,7 @@ export function CountdownTool() {
               setLabel(preset.title);
             }}
           >
-            <CalendarPlus />
+            <CalendarPlus aria-hidden="true" />
             {preset.title}
           </Button>
         ))}

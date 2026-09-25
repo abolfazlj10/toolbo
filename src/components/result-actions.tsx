@@ -21,6 +21,7 @@ export function ResultActions({
   canDownload = true,
 }: ResultActionsProps) {
   const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState("");
   const canShare = text.trim().length > 0;
   const fileName = useMemo(() => {
     const slug = slugifyFilename(filenameSlug || title || "toolbo-result");
@@ -32,22 +33,31 @@ export function ResultActions({
   }
 
   async function copyResult() {
-    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.append(textarea);
-      textarea.select();
-      document.execCommand("copy");
-      textarea.remove();
-    }
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.append(textarea);
+        textarea.select();
+        const succeeded = document.execCommand("copy");
+        textarea.remove();
+        if (!succeeded) throw new Error("Copy unavailable");
+      }
 
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1400);
+      setCopied(true);
+      setFeedback("نتیجه کپی شد.");
+      window.setTimeout(() => {
+        setCopied(false);
+        setFeedback("");
+      }, 1800);
+    } catch {
+      setFeedback("کپی انجام نشد. متن نتیجه را انتخاب و کپی کنید.");
+    }
   }
 
   async function shareResult() {
@@ -55,12 +65,19 @@ export function ResultActions({
       return;
     }
 
-    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
-      await navigator.share({
-        title,
-        text,
-      });
-      return;
+    try {
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title,
+          text,
+        });
+        return;
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+
     }
 
     await copyResult();
@@ -81,16 +98,18 @@ export function ResultActions({
   }
 
   return (
-    <div className="result-actions" aria-label="عملیات نتیجه">
+    <div className="result-actions" role="group" aria-label="عملیات نتیجه">
       <Button
         type="button"
-        size="icon-sm"
+        size="sm"
         variant="outline"
-        title="کپی نتیجه"
-        aria-label="کپی نتیجه"
+        className="result-copy-button"
+        title={copied ? "کپی شد" : "کپی نتیجه"}
+        aria-label={copied ? "نتیجه کپی شد" : "کپی نتیجه"}
         onClick={copyResult}
       >
-        {copied ? <Check /> : <Copy />}
+        {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+        <span>{copied ? "کپی شد" : "کپی"}</span>
       </Button>
       <Button
         type="button"
@@ -101,7 +120,7 @@ export function ResultActions({
         disabled={!canShare}
         onClick={shareResult}
       >
-        <Share2 />
+        <Share2 aria-hidden="true" />
       </Button>
       {canPrint && (
         <Button
@@ -112,7 +131,7 @@ export function ResultActions({
           aria-label="چاپ نتیجه"
           onClick={() => window.print()}
         >
-          <Printer />
+          <Printer aria-hidden="true" />
         </Button>
       )}
       {canDownload && (
@@ -124,9 +143,10 @@ export function ResultActions({
           aria-label="دانلود نتیجه"
           onClick={downloadResult}
         >
-          <Download />
+          <Download aria-hidden="true" />
         </Button>
       )}
+      <span className={copied ? "sr-only" : "result-action-feedback"} role="status" aria-live="polite">{feedback}</span>
     </div>
   );
 }

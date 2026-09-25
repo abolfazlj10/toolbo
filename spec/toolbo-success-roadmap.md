@@ -6,6 +6,22 @@ This document is the implementation-ready product roadmap for making Toolbo a mo
 
 The next implementation chat should be able to read this file and execute a selected phase, especially Phase 1, without needing the original brainstorming context.
 
+## Roadmap Maintenance Rule
+
+This file is the single source of truth for Toolbo product direction.
+
+After any product, UI, UX, tool, data, navigation, content, or technical capability is added, removed, or meaningfully changed, this file must be updated in the same work session.
+
+Updates should record:
+
+- What changed.
+- Why it changed.
+- Which user or product problem it solves.
+- What remains incomplete.
+- Which phase or backlog priority is affected.
+
+Keep the document written in English. Persian user-facing labels, examples, aliases, and tool names may appear only when they are actual product data or implementation examples.
+
 ## Product Vision
 
 Toolbo should become the fastest and most trustworthy Persian toolbox for everyday calculations, conversions, date/time tasks, finance helpers, legal/administrative utilities, text tools, and technology tools.
@@ -35,20 +51,178 @@ Based on the current codebase:
   - Global search exists.
   - Favorites exist through local storage.
   - Dark mode exists.
+  - Recent tools exist through local storage.
+  - Result actions exist for several result surfaces.
+  - Result history exists for selected repeat-use tools.
+  - Tool metadata exists as a TypeScript sidecar for selected tools.
   - Related tools exist inside tool pages.
   - Many basic calculators already work.
 - Current gaps:
-  - Most results are basic text or small result grids.
-  - Result actions are inconsistent and limited.
-  - No unified copy/share/print/download pattern for all tools.
-  - No result history or recent tools.
-  - Search is exact and does not support aliases, typos, or synonyms.
-  - No source/update metadata for tools that rely on changing rules.
-  - Conversion category is too small compared with direct competitors.
+  - Many results are still basic text or small result grids.
+  - Result actions are present but not yet consistently applied to every useful output.
+  - Result history is present but not yet standardized across all repeat-use tools.
+  - Search supports aliases and keywords for selected tools, but typo tolerance and synonym coverage are still limited.
+  - Source/update metadata exists only for selected tools and is not yet mandatory for rule-based tools.
+  - Conversion coverage has improved, but conversion discovery and mobile ergonomics still need polish.
   - Tool pages do not consistently explain formulas, examples, edge cases, or limitations.
   - Legal/administrative Iranian tools are missing.
   - Technology/content tools are limited.
   - No analytics/event strategy is defined.
+
+## UI/UX Improvements
+
+This section captures the product-design audit for the current Toolbo experience. It should be updated whenever UI, UX, navigation, information architecture, visual design, accessibility, or content presentation changes.
+
+### Design Goal
+
+Toolbo should feel like a fast, practical Persian utility product, not a marketing landing page.
+
+The interface should help users:
+
+- Find the right tool quickly.
+- Understand what each tool does before opening it.
+- Enter data with confidence.
+- See the result clearly.
+- Copy, share, save, print, or reuse the result.
+- Trust the calculation through formulas, sources, update dates, and limitation notes.
+
+### Current UI/UX Problems
+
+#### Information Architecture and Navigation
+
+- The primary navigation still behaves like a desktop hover menu. It needs a touch-first mobile pattern with explicit open, close, focus trap, escape, and outside-click behavior.
+- Category navigation shows all categories at the same visual priority. High-frequency categories such as time, finance, numbers, and conversions should be easier to reach.
+- Header actions compete with each other: categories, recent tools, favorites, utility anchors, theme toggle, and external personal links all appear in the same area.
+- The homepage anchor links for useful and recommended tools are weak navigation destinations because they do not represent core user intent.
+- External recommendation links are mixed with first-party Toolbo utilities. They should be visually separated so users do not confuse them with internal tools.
+
+#### Homepage
+
+- The homepage starts with useful modules, but the hierarchy still feels like a catalog grid instead of an intent-driven toolbox.
+- Category cards show count and title, but not the most useful tools inside each category.
+- Recommended tools are external products and should not compete visually with Toolbo's own tool catalog.
+- Recent tools are useful, but the empty and low-data states need clearer copy and a stronger next action.
+- The daily dashboard is promising, but it needs tighter information density and clearer prioritization on small screens.
+
+#### Category Pages
+
+- Category pages are currently mostly a grid of tool cards. They need a category header, short description, and search/filter/sort affordance.
+- Tool cards do not expose enough decision-making information. Users see a title and subtitle, but not whether a tool is popular, new, recently used, trusted, or supports history/actions.
+- The card hover effect is visually strong, but hover-only affordances are weak for touch devices.
+- Category ordering should be intentional: high-use tools first, secondary tools after, experimental tools clearly marked.
+
+#### Tool Pages
+
+- Tool pages use a two-column layout with a narrow sidebar. On desktop, the sidebar content can feel cramped; on mobile, it should become a clearer section below the primary tool.
+- The favorite explanation card is too verbose for a repeated utility action. Favorite should be a compact action near the tool title.
+- Breadcrumbs are useful but visually heavy inside the title block. They should support orientation without competing with the tool itself.
+- Related tools are shown, but they are category-neighbor related rather than always intent-related. Metadata-defined related tools should be preferred.
+- Explainer blocks are valuable, but they should stay below the task flow and be visually quieter than the form and result.
+
+#### Forms and Inputs
+
+- Numeric inputs use text inputs for Persian/English digit support, but they need stronger validation, examples, and inline error messages.
+- Form errors often appear as result text instead of field-level guidance. Users should know which field needs correction.
+- The primary action button is repeated across tools, but its visual style is heavy and should be standardized through the component system.
+- Some tools calculate on submit, while conversions calculate live. This is acceptable, but each tool should make the interaction model obvious.
+- Inputs need consistent placeholder style, help text, unit labels, and support for Persian and English digits.
+
+#### Results, History, and Actions
+
+- Result boxes are functional, but the most important result should be visually dominant.
+- Result grids need better hierarchy for primary value, secondary values, warnings, and metadata.
+- Copy/share/print/download actions exist, but they must be consistently available on every meaningful result.
+- Table outputs such as loan schedules need export formats that match the content, such as `.csv` for tabular data and `.txt` for summaries.
+- Result history should clearly explain that it is local to the browser and should avoid sensitive data by default.
+- Empty, invalid, and loading states should be designed as states, not only strings inside result boxes.
+
+#### Search
+
+- Search results should group categories, tools, and external recommendations more clearly.
+- Search should support synonyms, aliases, Persian/Arabic variants, Persian and English digits, and common English terms.
+- No-result states should suggest alternative searches or popular tools.
+- Search result ranking should be based on intent, not only string inclusion.
+- The search panel needs robust keyboard support: arrow navigation, enter to open, escape to close, and focus return.
+
+#### Visual Design System
+
+- The current palette is dominated by blue, dark navy, and gray. It needs a more deliberate design-token system with semantic roles for primary, success, warning, danger, neutral, info, and surface states.
+- Dark mode exists, but contrast and hierarchy should be audited per component instead of relying on direct dark equivalents.
+- Shadows, glass effects, gradients, and hover fills are inconsistent across cards, nav, results, and dashboards.
+- Border radius should be standardized. Repeated utility cards and controls should stay compact and professional.
+- Typography uses a single Persian font heavily. Headings, labels, helper text, numbers, and technical English values need clearer type roles.
+- Mobile font sizes become too small in several breakpoints. Touch-first readability should be protected before fitting more content.
+
+#### Layout and Responsiveness
+
+- The CSS contains many narrow breakpoint overrides. This creates maintenance risk and should be simplified into fewer responsive patterns.
+- Tool grids, category grids, dashboard panels, result grids, and sidebars should use shared responsive rules.
+- Mobile navigation should not rely on desktop menu positioning.
+- Fixed or near-fixed widths should be replaced with fluid constraints where possible.
+- Every primary viewport must be checked for horizontal overflow at `390px`, `768px`, `1024px`, and `1440px`.
+
+#### Accessibility and RTL/LTR
+
+- Existing improvements include skip link, accessible labels on several icon actions, `aria-live` result containers, and reduced-motion support.
+- Remaining work should focus on consistency: every interactive icon must have an accessible name, every input must have a programmatic label, and every menu must support keyboard and touch interaction.
+- Focus states should be visible across header, cards, forms, menus, result actions, and footer.
+- English technical values such as `IP`, `URL`, `JSON`, `UTC`, units, and filenames should render in LTR-safe contexts inside RTL layouts.
+- Decorative icons should be hidden from assistive technologies.
+- Heading hierarchy should be audited so each page has one clear primary heading and section headings follow logical order.
+
+#### Trust and Content
+
+- Rule-based or externally dependent tools must not ship without status, last-updated date, source, and limitation notes.
+- Stable formula-based tools should show formula or method when it improves trust.
+- Medical, legal, finance, and administrative tools need stronger limitation copy than simple calculators.
+- Tool subtitles should be rewritten to be useful, precise, and consistent. Some current copy is too vague or informal.
+
+### Phase 1A: UI/UX Quality Pass
+
+Phase 1A should run before adding more high-risk or rule-dependent tools.
+
+Goal:
+
+Fix the highest-impact experience issues that affect discovery, mobile usability, accessibility, and trust.
+
+P0 work:
+
+- Replace the desktop-first hover navigation with a mobile-safe menu pattern.
+- Standardize focus states and keyboard behavior for search, menus, cards, forms, and result actions.
+- Remove stale accessibility notes and keep this roadmap aligned with the current implementation.
+- Make result action availability consistent for all meaningful results.
+- Audit mobile layouts for overflow and unreadably small text.
+- Separate internal Toolbo tools from external recommended projects.
+- Make favorite and recent-tool actions compact, understandable, and less repetitive.
+
+P1 work:
+
+- Add category headers, descriptions, and intent-based sorting.
+- Improve tool cards with useful metadata such as popular, new, recent, trusted, or supports history.
+- Standardize result hierarchy with primary value, secondary values, warnings, and actions.
+- Improve empty states for search, favorites, recent tools, history, and category pages.
+- Create shared visual tokens for colors, shadows, surfaces, borders, radii, and typography.
+- Rewrite key UI copy for clarity, consistency, and professional Persian product tone.
+
+P2 work:
+
+- Add analytics-informed popular tools after privacy and provider decisions are made.
+- Add lightweight feedback prompts to identify confusing tools.
+- Add SEO and FAQ content only after the primary tool experience is strong.
+- Consider a broader visual refresh after the utility workflow is stable.
+
+### UI/UX Acceptance Criteria
+
+- Users can reach any primary category on mobile without hover.
+- Users can search, move through results, open a result, and close search with keyboard only.
+- Every result that can be reused has copy; important results also have share, print, or download.
+- No primary page has horizontal overflow at `390px`.
+- Text inside buttons, cards, and result boxes does not overlap or truncate awkwardly.
+- Form errors identify the specific field and do not appear only as generic result text.
+- The most important result value is visually obvious.
+- Dark mode preserves contrast, hierarchy, and focus visibility.
+- Internal tools and external links are visually distinct.
+- Tool pages show trust metadata whenever the tool depends on a source, date, external API, law, rate, or medical/finance interpretation.
 
 ## Competitor and Pattern Insights
 
@@ -930,6 +1104,28 @@ Acceptance criteria:
 - English technical values in results are readable.
 - Mobile layout does not overflow.
 
+### Phase 1A Accessibility and Interaction Audit
+
+Current status:
+
+- The project already includes a skip link, several accessible icon labels, result `aria-live` behavior, and reduced-motion support.
+- The remaining problem is consistency across every surface, especially navigation, search, forms, cards, and result actions.
+
+Known issues to fix:
+
+- Main menus still depend too much on hover behavior and need a complete touch and keyboard interaction model.
+- Search needs arrow-key navigation, escape-to-close behavior, and focus return after closing.
+- Mobile navigation still behaves like a compressed desktop navigation instead of a dedicated mobile pattern.
+- Field validation is not consistently inline or field-specific.
+- Numeric text inputs need consistent `name`, `inputMode`, validation copy, examples, and Persian/English digit handling.
+- Result and error states should be announced consistently to assistive technologies.
+- Decorative icons should consistently use `aria-hidden`.
+- Heading hierarchy should be audited across homepage, category pages, tool pages, and footer.
+- Empty states should provide context and a useful next action.
+- Share cancellation should never create an unhandled client or dev-server error.
+- Live dashboard time must avoid hydration mismatch by rendering client-only time safely.
+- All focus states must remain visible in light and dark mode.
+
 ### Phase 1 Performance Requirements
 
 Acceptance criteria:
@@ -1113,6 +1309,10 @@ Do not add analytics until privacy expectations and provider choice are clear.
 
 ### P0
 
+- Phase 1A UI/UX quality pass.
+- Mobile-safe navigation and search interaction.
+- Accessibility consistency across menus, forms, cards, and result actions.
+- Mobile overflow and touch-target audit.
 - Unified result actions.
 - Expanded conversions.
 - Search aliases.

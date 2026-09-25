@@ -3,12 +3,20 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowLeft,
   ArrowLeftRight,
+  Check,
+  ChevronLeft,
+  CircleHelp,
   Copy,
+  Info,
   Pause,
   Play,
   RotateCcw,
+  SlidersHorizontal,
   Star,
+  WandSparkles,
+  Wrench,
 } from "lucide-react";
 import { ResultActions } from "@/components/result-actions";
 import { useRecentTools } from "@/components/recent-tools-provider";
@@ -41,6 +49,7 @@ import { useTheme } from "@/components/theme-provider";
 import { allTools, categories, type ToolWithCategory } from "@/lib/tool-data";
 import { resultToText, type ResultLine, type ToolResult } from "@/lib/result-format";
 import { getToolMetadata, type ToolMetadata } from "@/lib/tool-metadata";
+import { toolIcons } from "@/lib/tool-icons";
 import { cn } from "@/lib/utils";
 import {
   convertNumberBase,
@@ -249,9 +258,7 @@ const calculators: Record<string, CalculatorDefinition> = {
     calculate(values) {
       const nums = requireNumbers(values, ["percent", "number"]);
       if (!nums) return "فیلد ها را کامل کنید.";
-      return `${formatNumber(nums.percent)}% عدد ${formatNumber(
-        nums.number
-      )} = ${formatNumber(nums.number * (nums.percent / 100))}`;
+      return `${toPersianDigits(formatNumber(nums.percent))} درصد از ${toPersianDigits(formatNumber(nums.number))}، برابر با ${toPersianDigits(formatNumber(nums.number * (nums.percent / 100)))} است.`;
     },
   },
   "/numbers/increasePercent": {
@@ -751,9 +758,11 @@ const calculators: Record<string, CalculatorDefinition> = {
 export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { addRecentTool } = useRecentTools();
-  const { isDark } = useTheme();
   const favorite = isFavorite(tool.url);
   const metadata = getToolMetadata(tool.url);
+  const Icon = toolIcons[tool.url] ?? Wrench;
+  const isCalculator = tool.url in calculators || tool.url === "/fiscal/loanInterest";
+  const isDashboard = ["/time/date", "/time/world-clock"].includes(tool.url);
   const related =
     categories
       .find((category) => category.url === tool.categoryUrl)
@@ -765,64 +774,89 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   }, [addRecentTool, tool]);
 
   return (
-    <>
-      <div className="container_m">
-        <div className="titleBox">
-          <div className="title">{tool.title}</div>
-          <div className="location">
-            <div className="fontIcon">&#xe904;</div>
-            <Link href="/">خانه</Link>
-            <div className="slash">/</div>
-            <Link href={tool.categoryUrl}>{tool.categoryTitle}</Link>
-            <div className="slash">/</div>
-            <Link href={tool.url}>{tool.title}</Link>
+    <div className="container_m tool-page">
+      <nav className="breadcrumbs" aria-label="مسیر صفحه">
+        <Link href="/">خانه</Link>
+        <ChevronLeft size={13} aria-hidden="true" />
+        <Link href={tool.categoryUrl}>{tool.categoryTitle}</Link>
+        <ChevronLeft size={13} aria-hidden="true" />
+        <span aria-current="page">{tool.title}</span>
+      </nav>
+
+      <header className="workspace-header">
+        <div className="workspace-heading">
+          <div className="workspace-tool-icon"><Icon aria-hidden="true" /></div>
+          <div>
+            <Link className="eyebrow" href={tool.categoryUrl}>{tool.categoryTitle}</Link>
+            <h1>{tool.title}</h1>
+            <p>{tool.sub}</p>
           </div>
         </div>
-      </div>
+        <button
+          type="button"
+          onClick={() => toggleFavorite(tool)}
+          className={cn("outline-button workspace-save", favorite && "is-saved")}
+          aria-pressed={favorite}
+        >
+          <Star size={17} fill={favorite ? "currentColor" : "none"} aria-hidden="true" />
+          {favorite ? "در ابزارهای من" : "ذخیره ابزار"}
+        </button>
+      </header>
 
-      <div className="container_m">
-        <div className="c_tools">
-          <section className={cn("tool", isDark && "tool_D")}>
-            <div className="title_tool">{tool.title}</div>
-            <div className="tool_content">{renderTool(tool)}</div>
+      <div className="c_tools">
+          <section className="tool" aria-label={tool.title}>
+            <div className="workspace-panel-heading">
+              <div className="workspace-step">
+                <span className="workspace-step-number">۰۱</span>
+                <div>
+                  <h2>{isDashboard ? "در یک نگاه" : "اطلاعات ابزار"}</h2>
+                  <p>{isDashboard ? "تاریخ و ساعت، همیشه به‌روز" : isCalculator ? "مقادیر را وارد کنید و محاسبه را بزنید." : "ورودی‌ها را مشخص کنید و از ابزار استفاده کنید."}</p>
+                </div>
+              </div>
+              <SlidersHorizontal size={18} aria-hidden="true" />
+            </div>
+            <div className="tool_content" key={tool.url}>{renderTool(tool)}</div>
           </section>
 
-          <aside className="side">
-            <div className={cn("info", isDark && "info_D")}>
-              <div>
-                <span className="fontIcon IH">&#xe914;</span>
-                در صورتی که این ابزار برای شما کاربردی بوده است میتوانید از طریق
-                دکمه زیر آن را به ابزار های کاربردی اضافه کنید.
-              </div>
-              <button
-                type="button"
-                onClick={() => toggleFavorite(tool)}
-                className={cn("btnAdd", favorite && "btnAdd_A")}
-              >
-                <Star size={14} fill={favorite ? "currentColor" : "none"} />
-                {favorite ? "حذف کردن" : "اضافه کردن"}
-              </button>
-            </div>
+          <aside className="workspace-sidebar" aria-label="راهنمای ابزار">
+            <section className="workspace-guide">
+              <div className="workspace-sidebar-title"><CircleHelp size={18} aria-hidden="true" /><h2>ساده، از شروع تا نتیجه</h2></div>
+              <ol>
+                <li><span>۱</span><div><strong>{isDashboard ? "اطلاعات را ببینید" : "ورودی را مشخص کنید"}</strong><p>{isDashboard ? "ساعت‌ها به‌صورت خودکار به‌روز می‌شوند." : tool.categorySlug === "text" ? "متن دلخواه را وارد و گزینه‌های ابزار را انتخاب کنید." : "اعداد فارسی و انگلیسی پذیرفته می‌شوند."}</p></div></li>
+                <li><span>۲</span><div><strong>نتیجه را بررسی کنید</strong><p>{isCalculator ? "پس از ورود اطلاعات، روی محاسبه بزنید." : "اطلاعات و خروجی ابزار در همین صفحه نمایش داده می‌شود."}</p></div></li>
+                <li><span>۳</span><div><strong>ابزار را نگه دارید</strong><p>برای دسترسی سریع، آن را به ابزارهای من اضافه کنید.</p></div></li>
+              </ol>
+              <Link href={tool.categoryUrl} className="workspace-category-link">
+                همه ابزارهای این دسته <ArrowLeft size={16} aria-hidden="true" />
+              </Link>
+            </section>
             <ToolTrustMetadata metadata={metadata} />
+            <div className="workspace-save-note">
+              <Star size={19} aria-hidden="true" />
+              <div>
+                <strong>همیشه دم دست</strong>
+                <p>ابزارهای ذخیره‌شده را از بخش «ابزارهای من» پیدا کنید.</p>
+              </div>
+            </div>
           </aside>
 
           <ToolExplainer tool={tool} metadata={metadata} />
 
           {related.length > 0 && (
             <section className="tool-related">
-              <div className={cn("headingTU", isDark && "headingTU_D")}>
-                ابزار های مرتبط
+              <div className="workspace-related-heading">
+                <div><span className="eyebrow">ادامه کار، بدون وقفه</span><h2>شاید این‌ها هم به کارتان بیاید</h2></div>
+                <Link className="text-link" href={tool.categoryUrl}>مشاهده دسته <ArrowLeft size={16} aria-hidden="true" /></Link>
               </div>
-              <div className="containerTU">
+              <div className="tools-grid workspace-related-grid">
                 {related.map((item) => (
                   <ToolCard key={item.url} tool={item} />
                 ))}
               </div>
             </section>
           )}
-        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -893,7 +927,7 @@ function renderTool(tool: ToolWithCategory) {
     default:
       return (
         <ResultBox
-          result="این ابزار هنوز در نسخه React پیاده سازی نشده است."
+          result="این ابزار در حال آماده‌سازی است. ابزارهای مرتبط را بررسی کنید."
           tone="muted"
         />
       );
@@ -989,7 +1023,7 @@ function LoanCalculatorTool({ tool }: { tool: ToolWithCategory }) {
   function calculateLoan() {
     const nums = requireNumbers(values, ["amount", "profit", "period"]);
 
-    if (!nums || nums.amount <= 0 || nums.period <= 0 || nums.profit < 0) {
+    if (["amount", "profit", "period"].some((name) => !values[name]?.trim()) || !nums || nums.amount <= 0 || nums.period <= 0 || nums.profit < 0) {
       setSummary("فیلد ها را کامل کنید.");
       setSchedule([]);
       return;
@@ -1033,15 +1067,17 @@ function LoanCalculatorTool({ tool }: { tool: ToolWithCategory }) {
               key={field.name}
               field={field}
               value={values[field.name] ?? ""}
-              onChange={(value) =>
-                setValues((current) => ({ ...current, [field.name]: value }))
-              }
+              onChange={(value) => {
+                setValues((current) => ({ ...current, [field.name]: value }));
+                setSummary(null);
+                setSchedule([]);
+              }}
             />
           ))}
         </div>
         <Button type="submit" className="bn632-hover">
-          <span className="fontIcon">&#xe906;</span>
-          محاسبه
+          محاسبه نتیجه
+          <ArrowLeft size={17} aria-hidden="true" />
         </Button>
       </form>
       <ResultBox result={summary} title={tool.title} filenameSlug={tool.slug} />
@@ -1138,6 +1174,10 @@ function CalculatorTool({
       <form
         onSubmit={(event) => {
           event.preventDefault();
+          if (definition.fields.some((field) => field.kind !== "select" && !values[field.name]?.trim())) {
+            setResult("برای محاسبه، همه فیلدها را کامل کنید.");
+            return;
+          }
           setResult(definition.calculate(values));
         }}
       >
@@ -1155,8 +1195,8 @@ function CalculatorTool({
           ))}
         </div>
         <Button type="submit" className="bn632-hover">
-          <span className="fontIcon">&#xe906;</span>
-          محاسبه
+          محاسبه نتیجه
+          <ArrowLeft size={17} aria-hidden="true" />
         </Button>
       </form>
       <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
@@ -1200,6 +1240,8 @@ function FieldControl({
       ) : field.kind === "textarea" ? (
         <Textarea
           id={id}
+          name={field.name}
+          autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
@@ -1209,7 +1251,10 @@ function FieldControl({
       ) : (
         <Input
           id={id}
+          name={field.name}
           value={value}
+          type="text"
+          autoComplete="off"
           inputMode={field.kind === "text" ? "text" : "decimal"}
           onChange={(event) => onChange(event.target.value)}
           placeholder={field.placeholder}
@@ -1235,14 +1280,28 @@ function ResultBox({
 }) {
   const { isDark } = useTheme();
   const resultText = resultToText(result);
+  const isInputHint = typeof result === "string" && !isMeaningfulResultText(result);
 
-  if (!result) return null;
+  if (!result) {
+    return (
+      <div className="result-empty" role="status">
+        <span className="result-empty-icon"><WandSparkles size={22} aria-hidden="true" /></span>
+        <strong>نتیجه اینجا نمایش داده می‌شود</strong>
+        <p>اطلاعات را کامل کنید تا نتیجه آماده شود.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className={cn("Result", isDark && "Result_D")}>
+    <div
+      className={cn("Result", isDark && "Result_D", isInputHint && "result-input-hint")}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    >
       <div className="title_tool result-title-row">
-        <span>نتیجه</span>
-        {actions && (
+        <span className="result-heading-label">{isInputHint ? <Info size={18} aria-hidden="true" /> : <Check size={18} aria-hidden="true" />}{isInputHint ? "ورودی را بررسی کنید" : "نتیجه آماده است"}</span>
+        {actions && !isInputHint && (
           <ResultActions title={title} text={resultText} filenameSlug={filenameSlug} />
         )}
       </div>
@@ -1265,7 +1324,7 @@ function ResultBox({
 }
 
 function ToolCardShell({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>;
+  return <div className="tool-body">{children}</div>;
 }
 
 function ConversionTool({ tool }: { tool: ToolWithCategory }) {
@@ -1294,7 +1353,8 @@ function LinearConversionTool({
   const [from, setFrom] = useState(units[0].id);
   const [to, setTo] = useState(units[1]?.id ?? units[0].id);
   const [hasInteracted, setHasInteracted] = useState(false);
-  const value = parseNumber(amount);
+  const amountId = useId();
+  const value = amount.trim() ? parseNumber(amount) : Number.NaN;
   const converted = Number.isFinite(value)
     ? convertUnit(group, value, from, to)
     : null;
@@ -1339,8 +1399,13 @@ function LinearConversionTool({
     <ToolCardShell>
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">مقدار</Label>
+          <Label htmlFor={amountId} className="mb-2 block">مقدار</Label>
           <Input
+            id={amountId}
+            name="amount"
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
             value={amount}
             onChange={(event) => updateAmount(event.target.value)}
             className="tool-input"
@@ -1362,7 +1427,7 @@ function LinearConversionTool({
             setTo(from);
           }}
         >
-          <ArrowLeftRight />
+          <ArrowLeftRight aria-hidden="true" />
           جابه‌جایی
         </Button>
         <div className="conversion-presets">
@@ -1411,6 +1476,7 @@ function NumberBaseConversionTool({ tool }: { tool: ToolWithCategory }) {
   const [from, setFrom] = useState<NumberBaseId>("decimal");
   const [to, setTo] = useState<NumberBaseId>("hex");
   const [hasInteracted, setHasInteracted] = useState(false);
+  const valueId = useId();
   const converted = convertNumberBase(toEnglishDigits(value), from, to);
   const fromLabel = numberBaseUnits.find((unit) => unit.id === from)?.label;
   const toLabel = numberBaseUnits.find((unit) => unit.id === to)?.label;
@@ -1436,8 +1502,12 @@ function NumberBaseConversionTool({ tool }: { tool: ToolWithCategory }) {
     <ToolCardShell>
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">عدد</Label>
+          <Label htmlFor={valueId} className="mb-2 block">عدد</Label>
           <Input
+            id={valueId}
+            name="number-base-value"
+            type="text"
+            autoComplete="off"
             value={value}
             onChange={(event) => {
               setHasInteracted(true);
@@ -1477,7 +1547,7 @@ function NumberBaseConversionTool({ tool }: { tool: ToolWithCategory }) {
             setTo(from);
           }}
         >
-          <ArrowLeftRight />
+          <ArrowLeftRight aria-hidden="true" />
           جابه‌جایی
         </Button>
       </div>
@@ -1576,6 +1646,8 @@ function CalendarTool() {
   const current = todayJalaali();
   const [year, setYear] = useState(String(current.jy));
   const [month, setMonth] = useState(String(current.jm));
+  const yearId = useId();
+  const monthId = useId();
   const y = Math.max(1, Math.trunc(parseNumber(year)) || current.jy);
   const m = Math.min(12, Math.max(1, Math.trunc(parseNumber(month)) || current.jm));
   const calendar = buildJalaaliMonth(y, m);
@@ -1584,17 +1656,22 @@ function CalendarTool() {
     <ToolCardShell>
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">سال</Label>
+          <Label htmlFor={yearId} className="mb-2 block">سال</Label>
           <Input
+            id={yearId}
+            name="calendar-year"
+            type="text"
+            inputMode="numeric"
+            autoComplete="off"
             value={year}
             onChange={(event) => setYear(event.target.value)}
             className="tool-input"
           />
         </div>
         <div className="toolbo-field">
-          <Label className="mb-2 block">ماه</Label>
+          <Label htmlFor={monthId} className="mb-2 block">ماه</Label>
           <Select value={String(m)} onValueChange={setMonth}>
-            <SelectTrigger className="tool-input h-10 w-full">
+            <SelectTrigger id={monthId} className="tool-input h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -1607,16 +1684,17 @@ function CalendarTool() {
           </Select>
         </div>
       </div>
-      <div className="mt-5 grid grid-cols-7 gap-2 text-center text-sm">
-        {["ش", "ی", "د", "س", "چ", "پ", "ج"].map((day) => (
-          <div key={day} className="rounded-md bg-muted p-2 font-semibold">
+      <div className="tool-calendar" aria-label={`تقویم ${persianMonths[m - 1]} ${toPersianDigits(y)}`}>
+        {["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"].map((day) => (
+          <div key={day} className="tool-calendar-weekday">
             {day}
           </div>
         ))}
         {calendar.cells.map((day, index) => (
           <div
             key={`${day ?? "empty"}-${index}`}
-            className="min-h-10 rounded-md border bg-background p-2"
+            className={cn("tool-calendar-day", !day && "is-empty", index % 7 === 6 && "is-friday", day === current.jd && m === current.jm && y === current.jy && "is-today")}
+            aria-current={day === current.jd && m === current.jm && y === current.jy ? "date" : undefined}
           >
             {day ? toPersianDigits(day) : ""}
           </div>
@@ -1634,6 +1712,8 @@ function DateConvertTool({ tool }: { tool: ToolWithCategory }) {
   const [jy, setJy] = useState(String(jToday.jy));
   const [jm, setJm] = useState(String(jToday.jm));
   const [jd, setJd] = useState(String(jToday.jd));
+  const modeId = useId();
+  const dateId = useId();
 
   const converted = useMemo(() => {
     const target =
@@ -1658,8 +1738,9 @@ function DateConvertTool({ tool }: { tool: ToolWithCategory }) {
 
   return (
     <ToolCardShell>
+      <Label htmlFor={modeId} className="mb-2 block">نوع ورودی تاریخ</Label>
       <Select value={mode} onValueChange={setMode}>
-        <SelectTrigger className="tool-input h-10 w-full sm:w-60">
+        <SelectTrigger id={modeId} className="tool-input h-10 w-full sm:w-60">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
@@ -1669,8 +1750,10 @@ function DateConvertTool({ tool }: { tool: ToolWithCategory }) {
       </Select>
       {mode === "gregorian" ? (
         <div className="mt-4 max-w-sm">
-          <Label className="mb-2 block">تاریخ میلادی</Label>
+          <Label htmlFor={dateId} className="mb-2 block">تاریخ میلادی</Label>
           <Input
+            id={dateId}
+            name="gregorian-date"
             type="date"
             value={date}
             onChange={(event) => setDate(event.target.value)}
@@ -1697,6 +1780,7 @@ function DateConvertTool({ tool }: { tool: ToolWithCategory }) {
 
 function AgeTool({ tool }: { tool: ToolWithCategory }) {
   const [birth, setBirth] = useState("2000-01-01");
+  const birthId = useId();
   const date = gregorianDateFromInput(birth);
   const diff = date ? diffDates(date, new Date()) : null;
   const result = diff
@@ -1717,8 +1801,10 @@ function AgeTool({ tool }: { tool: ToolWithCategory }) {
   return (
     <ToolCardShell>
       <div className="max-w-sm">
-        <Label className="mb-2 block">تاریخ تولد میلادی</Label>
+        <Label htmlFor={birthId} className="mb-2 block">تاریخ تولد میلادی</Label>
         <Input
+          id={birthId}
+          name="birth-date"
           type="date"
           value={birth}
           onChange={(event) => setBirth(event.target.value)}
@@ -1773,6 +1859,7 @@ function PrayerTool() {
   const cities = (religiousCities as { city: { Name: string; LName: string }[] }).city;
   const [city, setCity] = useState("Tehran");
   const [result, setResult] = useState<ResultLine[] | string | null>(null);
+  const cityId = useId();
 
   async function loadPrayerTimes() {
     setResult("در حال دریافت...");
@@ -1800,18 +1887,21 @@ function PrayerTool() {
   return (
     <ToolCardShell>
       <div className="flex flex-col gap-3 sm:flex-row">
-        <Select value={city} onValueChange={setCity}>
-          <SelectTrigger className="tool-input h-10 w-full sm:w-72">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {cities.slice(0, 80).map((item) => (
-              <SelectItem key={`${item.LName}-${item.Name}`} value={item.LName.trim()}>
-                {item.Name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="toolbo-field">
+          <Label htmlFor={cityId} className="mb-2 block">شهر</Label>
+          <Select value={city} onValueChange={setCity}>
+            <SelectTrigger id={cityId} className="tool-input h-10 w-full sm:w-72">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {cities.slice(0, 80).map((item) => (
+                <SelectItem key={`${item.LName}-${item.Name}`} value={item.LName.trim()}>
+                  {item.Name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         <Button type="button" onClick={loadPrayerTimes} className="bn632-hover">
           دریافت اوقات شرعی
         </Button>
@@ -1825,6 +1915,7 @@ function TimerTool() {
   const [seconds, setSeconds] = useState("60");
   const [remaining, setRemaining] = useState(60);
   const [running, setRunning] = useState(false);
+  const secondsId = useId();
   const done = remaining === 0 && !running;
 
   useEffect(() => {
@@ -1844,8 +1935,13 @@ function TimerTool() {
   return (
     <ToolCardShell>
       <div className="max-w-sm">
-        <Label className="mb-2 block">ثانیه</Label>
+        <Label htmlFor={secondsId} className="mb-2 block">ثانیه</Label>
         <Input
+          id={secondsId}
+          name="timer-seconds"
+          type="text"
+          inputMode="numeric"
+          autoComplete="off"
           value={seconds}
           onChange={(event) => setSeconds(event.target.value)}
           className="tool-input"
@@ -1866,7 +1962,7 @@ function TimerTool() {
             setRunning((current) => !current);
           }}
         >
-          {running ? <Pause /> : <Play />}
+          {running ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
           {running ? "توقف" : "شروع"}
         </Button>
         <Button
@@ -1878,7 +1974,7 @@ function TimerTool() {
             setRemaining(Math.max(0, Math.trunc(parseNumber(seconds))));
           }}
         >
-          <RotateCcw />
+          <RotateCcw aria-hidden="true" />
           تنظیم
         </Button>
       </div>
@@ -1890,6 +1986,7 @@ function TimerTool() {
 function AlarmTool() {
   const [time, setTime] = useState("07:00");
   const [message, setMessage] = useState("زنگ هشدار تنظیم نشده است.");
+  const timeId = useId();
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -1907,8 +2004,10 @@ function AlarmTool() {
   return (
     <ToolCardShell>
       <div className="max-w-sm">
-        <Label className="mb-2 block">زمان هشدار</Label>
+        <Label htmlFor={timeId} className="mb-2 block">زمان هشدار</Label>
         <Input
+          id={timeId}
+          name="alarm-time"
           type="time"
           value={time}
           onChange={(event) => setTime(event.target.value)}
@@ -1942,7 +2041,7 @@ function StopwatchTool() {
           className="bn632-hover"
           onClick={() => setRunning((value) => !value)}
         >
-          {running ? <Pause /> : <Play />}
+          {running ? <Pause aria-hidden="true" /> : <Play aria-hidden="true" />}
           {running ? "توقف" : "شروع"}
         </Button>
         <Button
@@ -1963,7 +2062,7 @@ function StopwatchTool() {
             setLaps([]);
           }}
         >
-          <RotateCcw />
+          <RotateCcw aria-hidden="true" />
           صفر
         </Button>
       </div>
@@ -2038,6 +2137,8 @@ function NationalCodeTool() {
 function TextTransformTool() {
   const [text, setText] = useState("");
   const [mode, setMode] = useState("upper");
+  const modeId = useId();
+  const textId = useId();
   const result =
     mode === "upper"
       ? text.toUpperCase()
@@ -2055,8 +2156,9 @@ function TextTransformTool() {
   return (
     <ToolCardShell>
       <div className="space-y-4">
+        <Label htmlFor={modeId} className="mb-2 block">نوع تبدیل متن</Label>
         <Select value={mode} onValueChange={setMode}>
-          <SelectTrigger className="tool-input h-10 w-full sm:w-60">
+          <SelectTrigger id={modeId} className="tool-input h-10 w-full sm:w-60">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -2066,7 +2168,11 @@ function TextTransformTool() {
             <SelectItem value="toggle">برعکس کردن حالت</SelectItem>
           </SelectContent>
         </Select>
+        <Label htmlFor={textId} className="mb-2 block">متن</Label>
         <Textarea
+          id={textId}
+          name="text-transform-input"
+          autoComplete="off"
           value={text}
           onChange={(event) => setText(event.target.value)}
           className="tool-input min-h-40"
@@ -2081,6 +2187,7 @@ function TextTransformTool() {
 
 function TextCounterTool({ tool }: { tool: ToolWithCategory }) {
   const [text, setText] = useState("");
+  const textId = useId();
   const words = text.trim() ? text.trim().split(/\s+/).length : 0;
   const result = [
     { label: "کاراکتر با فاصله", value: formatNumber(text.length, 0) },
@@ -2104,7 +2211,11 @@ function TextCounterTool({ tool }: { tool: ToolWithCategory }) {
 
   return (
     <ToolCardShell>
+      <Label htmlFor={textId} className="mb-2 block">متن</Label>
       <Textarea
+        id={textId}
+        name="text-counter-input"
+        autoComplete="off"
         value={text}
         onChange={(event) => setText(event.target.value)}
         className="tool-input min-h-44"
@@ -2134,6 +2245,8 @@ function TextCounterTool({ tool }: { tool: ToolWithCategory }) {
 function LoremTool() {
   const [language, setLanguage] = useState("fa");
   const [count, setCount] = useState("2");
+  const languageId = useId();
+  const outputId = useId();
   const fa =
     "لورم ایپسوم متن ساختگی با تولید سادگی نامفهوم از صنعت چاپ و با استفاده از طراحان گرافیک است.";
   const en =
@@ -2147,9 +2260,9 @@ function LoremTool() {
     <ToolCardShell>
       <div className="tool-field-grid">
         <div className="toolbo-field">
-          <Label className="mb-2 block">زبان</Label>
+          <Label htmlFor={languageId} className="mb-2 block">زبان</Label>
           <Select value={language} onValueChange={setLanguage}>
-            <SelectTrigger className="tool-input h-10 w-full">
+            <SelectTrigger id={languageId} className="tool-input h-10 w-full">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -2160,7 +2273,10 @@ function LoremTool() {
         </div>
         <LabeledInput label="تعداد پاراگراف" value={count} onChange={setCount} />
       </div>
+      <Label htmlFor={outputId} className="mb-2 mt-4 block">متن ساخته شده</Label>
       <Textarea
+        id={outputId}
+        name="lorem-output"
         value={text}
         readOnly
         className="tool-input mt-4 min-h-56"
@@ -2298,6 +2414,7 @@ function TimestampTool() {
 
 function BinaryTool() {
   const [text, setText] = useState("ToolBo");
+  const textId = useId();
   const binary = text
     .split("")
     .map((char) => char.charCodeAt(0).toString(2).padStart(8, "0"))
@@ -2309,8 +2426,11 @@ function BinaryTool() {
 
   return (
     <ToolCardShell>
-      <Label className="mb-2 block">متن</Label>
+      <Label htmlFor={textId} className="mb-2 block">متن</Label>
       <Textarea
+        id={textId}
+        name="binary-text"
+        autoComplete="off"
         value={text}
         onChange={(event) => setText(event.target.value)}
         className="tool-input min-h-32"
@@ -2326,8 +2446,6 @@ function BinaryTool() {
 }
 
 function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
-  const { isDark } = useTheme();
-
   if (
     !metadata ||
     (!metadata.status &&
@@ -2346,8 +2464,8 @@ function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
         : "نیازمند بازبینی";
 
   return (
-    <div className={cn("info tool-trust", isDark && "info_D")}>
-      <div className="tool-trust-title">اطلاعات ابزار</div>
+    <section className="tool-trust">
+      <div className="workspace-sidebar-title"><Info size={17} aria-hidden="true" /><h2>درباره نتیجه</h2></div>
       {metadata.status && (
         <div>
           <span>وضعیت: </span>
@@ -2357,7 +2475,7 @@ function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
       {metadata.lastUpdated && (
         <div>
           <span>بروزرسانی: </span>
-          <strong>{metadata.lastUpdated}</strong>
+          <strong><bdi>{toPersianDigits(metadata.lastUpdated)}</bdi></strong>
         </div>
       )}
       {metadata.sourceLabel && metadata.sourceUrl && (
@@ -2370,7 +2488,7 @@ function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
           {item}
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -2414,7 +2532,7 @@ function ToolExplainer({
         )}
         {metadata.examples?.slice(0, 1).map((example) => (
           <div key={example.label}>
-            <strong>مثال</strong>
+            <strong>مثال: {example.label}</strong>
             <p>{example.expectedOutputSummary}</p>
           </div>
         ))}
@@ -2456,7 +2574,9 @@ function LabeledInput({
       <Label htmlFor={id} className="mb-2 block">{label}</Label>
       <Input
         id={id}
+        name={label.toLowerCase().replace(/\s+/g, "-")}
         type={type}
+        autoComplete="off"
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="tool-input"
@@ -2474,7 +2594,7 @@ function CopyButton({ text }: { text: string }) {
       disabled={!text}
       onClick={() => navigator.clipboard.writeText(text)}
     >
-      <Copy />
+      <Copy aria-hidden="true" />
       کپی
     </Button>
   );

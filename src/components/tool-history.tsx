@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useSyncExternalStore } from "react";
-import { Trash2 } from "lucide-react";
+import { History, Trash2 } from "lucide-react";
 import { ResultActions } from "@/components/result-actions";
 import { Button } from "@/components/ui/button";
 
@@ -30,7 +30,8 @@ function parseHistory(snapshot: string) {
           (entry) =>
             typeof entry?.id === "string" &&
             typeof entry?.summary === "string" &&
-            typeof entry?.createdAt === "string"
+            typeof entry?.createdAt === "string" &&
+            Number.isFinite(Date.parse(entry.createdAt))
         )
       : [];
   } catch {
@@ -130,8 +131,8 @@ export function ToolHistory({
     <section className="tool-history" aria-label="تاریخچه نتیجه">
       <div className="tool-history-header">
         <div>
-          <div className="tool-history-title">تاریخچه نتیجه</div>
-          <div className="tool-history-subtitle">۵ نتیجه آخر همین ابزار</div>
+          <h3 className="tool-history-title"><History size={17} aria-hidden="true" />نتیجه‌های اخیر</h3>
+          <div className="tool-history-subtitle">تا ۵ نتیجه آخر، ذخیره‌شده در همین مرورگر</div>
         </div>
         <Button
           type="button"
@@ -149,6 +150,9 @@ export function ToolHistory({
         {entries.map((entry) => (
           <article key={entry.id} className="tool-history-item">
             <pre>{entry.summary}</pre>
+            <time className="tool-history-time" dateTime={entry.createdAt}>
+              {new Intl.DateTimeFormat("fa-IR", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(entry.createdAt))}
+            </time>
             <ResultActions
               title={`${title} - تاریخچه`}
               text={entry.summary}

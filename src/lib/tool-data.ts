@@ -85,7 +85,7 @@ export function getSearchResults(query: string) {
 
       return {
         tool,
-        score: score + (metadata?.priority ?? 0),
+        score: score > 0 ? score + (metadata?.priority ?? 0) : 0,
       };
     })
     .filter((item) => item.score > 0)
