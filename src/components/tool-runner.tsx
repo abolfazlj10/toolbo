@@ -7,13 +7,11 @@ import {
   ArrowLeftRight,
   Check,
   ChevronLeft,
-  CircleHelp,
   Copy,
   Info,
   Pause,
   Play,
   RotateCcw,
-  SlidersHorizontal,
   Star,
   WandSparkles,
   Wrench,
@@ -761,8 +759,6 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   const favorite = isFavorite(tool.url);
   const metadata = getToolMetadata(tool.url);
   const Icon = toolIcons[tool.url] ?? Wrench;
-  const isCalculator = tool.url in calculators || tool.url === "/fiscal/loanInterest";
-  const isDashboard = ["/time/date", "/time/world-clock"].includes(tool.url);
   const related =
     categories
       .find((category) => category.url === tool.categoryUrl)
@@ -787,7 +783,6 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
         <div className="workspace-heading">
           <div className="workspace-tool-icon"><Icon aria-hidden="true" /></div>
           <div>
-            <Link className="eyebrow" href={tool.categoryUrl}>{tool.categoryTitle}</Link>
             <h1>{tool.title}</h1>
             <p>{tool.sub}</p>
           </div>
@@ -805,39 +800,11 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
 
       <div className="c_tools">
           <section className="tool" aria-label={tool.title}>
-            <div className="workspace-panel-heading">
-              <div className="workspace-step">
-                <span className="workspace-step-number">۰۱</span>
-                <div>
-                  <h2>{isDashboard ? "در یک نگاه" : "اطلاعات ابزار"}</h2>
-                  <p>{isDashboard ? "تاریخ و ساعت، همیشه به‌روز" : isCalculator ? "مقادیر را وارد کنید و محاسبه را بزنید." : "ورودی‌ها را مشخص کنید و از ابزار استفاده کنید."}</p>
-                </div>
-              </div>
-              <SlidersHorizontal size={18} aria-hidden="true" />
-            </div>
             <div className="tool_content" key={tool.url}>{renderTool(tool)}</div>
           </section>
 
           <aside className="workspace-sidebar" aria-label="راهنمای ابزار">
-            <section className="workspace-guide">
-              <div className="workspace-sidebar-title"><CircleHelp size={18} aria-hidden="true" /><h2>ساده، از شروع تا نتیجه</h2></div>
-              <ol>
-                <li><span>۱</span><div><strong>{isDashboard ? "اطلاعات را ببینید" : "ورودی را مشخص کنید"}</strong><p>{isDashboard ? "ساعت‌ها به‌صورت خودکار به‌روز می‌شوند." : tool.categorySlug === "text" ? "متن دلخواه را وارد و گزینه‌های ابزار را انتخاب کنید." : "اعداد فارسی و انگلیسی پذیرفته می‌شوند."}</p></div></li>
-                <li><span>۲</span><div><strong>نتیجه را بررسی کنید</strong><p>{isCalculator ? "پس از ورود اطلاعات، روی محاسبه بزنید." : "اطلاعات و خروجی ابزار در همین صفحه نمایش داده می‌شود."}</p></div></li>
-                <li><span>۳</span><div><strong>ابزار را نگه دارید</strong><p>برای دسترسی سریع، آن را به ابزارهای من اضافه کنید.</p></div></li>
-              </ol>
-              <Link href={tool.categoryUrl} className="workspace-category-link">
-                همه ابزارهای این دسته <ArrowLeft size={16} aria-hidden="true" />
-              </Link>
-            </section>
             <ToolTrustMetadata metadata={metadata} />
-            <div className="workspace-save-note">
-              <Star size={19} aria-hidden="true" />
-              <div>
-                <strong>همیشه دم دست</strong>
-                <p>ابزارهای ذخیره‌شده را از بخش «ابزارهای من» پیدا کنید.</p>
-              </div>
-            </div>
           </aside>
 
           <ToolExplainer tool={tool} metadata={metadata} />
@@ -845,7 +812,7 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
           {related.length > 0 && (
             <section className="tool-related">
               <div className="workspace-related-heading">
-                <div><span className="eyebrow">ادامه کار، بدون وقفه</span><h2>شاید این‌ها هم به کارتان بیاید</h2></div>
+                <h2>ابزارهای مرتبط</h2>
                 <Link className="text-link" href={tool.categoryUrl}>مشاهده دسته <ArrowLeft size={16} aria-hidden="true" /></Link>
               </div>
               <div className="tools-grid workspace-related-grid">

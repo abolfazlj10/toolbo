@@ -122,7 +122,7 @@ export function ToolDirectory({ category, searchQuery, onSearchChange }: ToolDir
       </div>
 
       <div className="tools-grid" id={resultsId}>
-        {visibleTools.map(tool => <ToolCard tool={tool} key={tool.url} compact={!category} />)}
+        {visibleTools.map(tool => <ToolCard tool={tool} key={tool.url} compact />)}
       </div>
       {!tools.length && (
         <div className="empty-state">

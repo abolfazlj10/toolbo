@@ -4,7 +4,7 @@ export function Brand() {
   return (
     <Link href="/" className="brand" aria-label="تولبو، صفحه اصلی">
       <span className="brand-mark" aria-hidden="true"><i /><i /><i /><i /></span>
-      <span className="brand-name" lang="en" dir="ltr" translate="no">toolbo<span className="brand-period">.</span></span>
+      <span className="brand-name" lang="en" dir="ltr" translate="no">toolbo</span>
     </Link>
   );
 }
