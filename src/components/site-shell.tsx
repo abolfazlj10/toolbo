@@ -160,7 +160,7 @@ function SiteFooter() {
     <footer className="site-footer">
       <div className="container_m footer-compact">
         <span dir="ltr">© {new Date().getFullYear()} toolbo</span>
-        <a href="https://j10-mi9b.vercel.app/" target="_blank" rel="noreferrer">درباره سازنده <ArrowUpLeft size={14} aria-hidden="true" /></a>
+        <a href="https://abolfazljamshidi.ir/" target="_blank" rel="noreferrer">درباره سازنده <ArrowUpLeft size={14} aria-hidden="true" /></a>
       </div>
     </footer>
   );
