@@ -12,7 +12,9 @@ import {
   Pause,
   Play,
   RotateCcw,
-  Star,
+  Share2,
+  ShieldCheck,
+  Heart,
   WandSparkles,
   Wrench,
 } from "lucide-react";
@@ -32,8 +34,8 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useFavorites } from "@/components/favorites-provider";
-import { ToolCard } from "@/components/tool-card";
 import {
+  CalendarTool,
   CountdownTool,
   DateOffsetTool,
   EventsTool,
@@ -44,11 +46,12 @@ import {
   WorldClockTool,
 } from "@/components/time-tools";
 import { useTheme } from "@/components/theme-provider";
-import { allTools, categories, type ToolWithCategory } from "@/lib/tool-data";
+import { allTools, type ToolWithCategory } from "@/lib/tool-data";
 import { resultToText, type ResultLine, type ToolResult } from "@/lib/result-format";
 import { getToolMetadata, type ToolMetadata } from "@/lib/tool-metadata";
 import { toolIcons } from "@/lib/tool-icons";
 import { cn } from "@/lib/utils";
+import { getCategoryLabel } from "@/lib/site";
 import {
   convertNumberBase,
   convertUnit,
@@ -59,7 +62,6 @@ import {
   type UnitGroupId,
 } from "@/lib/unit-conversions";
 import {
-  buildJalaaliMonth,
   diffDates,
   factorsOf,
   formatGregorian,
@@ -72,12 +74,10 @@ import {
   numberToEnglishWords,
   numberToPersianWords,
   parseNumber,
-  persianMonths,
   requireNumbers,
   swapDigits,
   toEnglishDigits,
   toPersianDigits,
-  todayJalaali,
 } from "@/lib/tool-utils";
 import nationalCodes from "@/data/national-num.json";
 import religiousCities from "@/data/religious.json";
@@ -240,8 +240,12 @@ function useRememberResultHistory({
       return;
     }
 
-    lastSaved.current = resultText;
-    addHistory(`${title}\n${resultText}`);
+    // Live results change on every keystroke; only remember the value the user settles on.
+    const timeout = window.setTimeout(() => {
+      lastSaved.current = resultText;
+      addHistory(`${title}\n${resultText}`);
+    }, 1500);
+    return () => window.clearTimeout(timeout);
   }, [addHistory, enabled, resultText, title]);
 
   return { entries, clearHistory, resultText };
@@ -759,71 +763,114 @@ export function ToolRunner({ tool }: { tool: ToolWithCategory }) {
   const favorite = isFavorite(tool.url);
   const metadata = getToolMetadata(tool.url);
   const Icon = toolIcons[tool.url] ?? Wrench;
-  const related =
-    categories
-      .find((category) => category.url === tool.categoryUrl)
-      ?.item.filter((item) => item.url !== tool.url)
-      .slice(0, 3) ?? [];
+  const categoryLabel = getCategoryLabel(tool.categoryUrl);
+  const metadataRelated = (metadata?.relatedTools ?? [])
+    .map((url) => allTools.find((item) => item.url === url))
+    .filter((item): item is ToolWithCategory => Boolean(item));
+  const related = [
+    ...metadataRelated,
+    ...allTools.filter(
+      (item) => item.categoryUrl === tool.categoryUrl && item.url !== tool.url && !metadataRelated.includes(item)
+    ),
+  ].slice(0, 6);
 
   useEffect(() => {
     addRecentTool(tool);
   }, [addRecentTool, tool]);
 
   return (
-    <div className="container_m tool-page">
-      <nav className="breadcrumbs" aria-label="مسیر صفحه">
-        <Link href="/">خانه</Link>
-        <ChevronLeft size={13} aria-hidden="true" />
-        <Link href={tool.categoryUrl}>{tool.categoryTitle}</Link>
-        <ChevronLeft size={13} aria-hidden="true" />
-        <span aria-current="page">{tool.title}</span>
-      </nav>
+    <div className="tool-page" data-category={tool.categorySlug}>
+      <div className="container_m">
+        <nav className="breadcrumbs" aria-label="مسیر صفحه">
+          <Link href="/">خانه</Link>
+          <ChevronLeft size={13} aria-hidden="true" />
+          <Link href={tool.categoryUrl}>{categoryLabel}</Link>
+          <ChevronLeft size={13} aria-hidden="true" />
+          <span aria-current="page">{tool.title.trim()}</span>
+        </nav>
 
-      <header className="workspace-header">
-        <div className="workspace-heading">
-          <div className="workspace-tool-icon"><Icon aria-hidden="true" /></div>
-          <div>
-            <h1>{tool.title}</h1>
-            <p>{tool.sub}</p>
+        <header className="workspace-header">
+          <div className="workspace-heading">
+            <span className="tile-icon large" aria-hidden="true"><Icon size={26} strokeWidth={1.6} /></span>
+            <div>
+              <h1>{tool.title.trim()}</h1>
+              <p>{tool.sub}</p>
+            </div>
           </div>
-        </div>
-        <button
-          type="button"
-          onClick={() => toggleFavorite(tool)}
-          className={cn("outline-button workspace-save", favorite && "is-saved")}
-          aria-pressed={favorite}
-        >
-          <Star size={17} fill={favorite ? "currentColor" : "none"} aria-hidden="true" />
-          {favorite ? "در ابزارهای من" : "ذخیره ابزار"}
-        </button>
-      </header>
+          <div className="workspace-actions">
+            <ShareToolButton title={tool.title.trim()} />
+            <button
+              type="button"
+              onClick={() => toggleFavorite(tool)}
+              className={cn("outline-button workspace-save", favorite && "is-saved")}
+              aria-pressed={favorite}
+            >
+              <Heart size={16} fill={favorite ? "currentColor" : "none"} aria-hidden="true" />
+              {favorite ? "ذخیره شد" : "ذخیره"}
+            </button>
+          </div>
+        </header>
 
-      <div className="c_tools">
-          <section className="tool" aria-label={tool.title}>
-            <div className="tool_content" key={tool.url}>{renderTool(tool)}</div>
-          </section>
+        <div className="c_tools">
+          <div className="workspace-main">
+            <section className="tool" aria-label={tool.title}>
+              <div className="tool_content" key={tool.url}>{renderTool(tool)}</div>
+            </section>
+            <ToolExplainer tool={tool} metadata={metadata} />
+          </div>
 
-          <aside className="workspace-sidebar" aria-label="راهنمای ابزار">
+          <aside className="workspace-sidebar" aria-label="ابزارهای مرتبط و اطلاعات">
+            {related.length > 0 && (
+              <section className="sidebar-card">
+                <h2 className="sidebar-title">ابزارهای مرتبط</h2>
+                <ul className="related-list">
+                  {related.map((item) => {
+                    const RelatedIcon = toolIcons[item.url] ?? Wrench;
+                    return (
+                      <li key={item.url}>
+                        <Link href={item.url} data-category={item.categorySlug}>
+                          <span className="tile-icon small" aria-hidden="true"><RelatedIcon size={16} strokeWidth={1.8} /></span>
+                          <span>{item.title.trim()}</span>
+                          <ChevronLeft size={15} aria-hidden="true" />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <Link className="sidebar-more" href={tool.categoryUrl}>همه ابزارهای {categoryLabel} <ArrowLeft size={15} aria-hidden="true" /></Link>
+              </section>
+            )}
             <ToolTrustMetadata metadata={metadata} />
           </aside>
-
-          <ToolExplainer tool={tool} metadata={metadata} />
-
-          {related.length > 0 && (
-            <section className="tool-related">
-              <div className="workspace-related-heading">
-                <h2>ابزارهای مرتبط</h2>
-                <Link className="text-link" href={tool.categoryUrl}>مشاهده دسته <ArrowLeft size={16} aria-hidden="true" /></Link>
-              </div>
-              <div className="tools-grid workspace-related-grid">
-                {related.map((item) => (
-                  <ToolCard key={item.url} tool={item} />
-                ))}
-              </div>
-            </section>
-          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function ShareToolButton({ title }: { title: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function share() {
+    const url = window.location.href;
+    if (navigator.share && window.matchMedia("(pointer: coarse)").matches) {
+      try {
+        await navigator.share({ title: `${title} | تولبو`, url });
+      } catch {}
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  }
+
+  return (
+    <button type="button" className="outline-button" onClick={share} aria-live="polite">
+      {copied ? <Check size={16} aria-hidden="true" /> : <Share2 size={16} aria-hidden="true" />}
+      {copied ? "لینک کپی شد" : "اشتراک‌گذاری"}
+    </button>
   );
 }
 
@@ -1110,6 +1157,8 @@ function LoanCalculatorTool({ tool }: { tool: ToolWithCategory }) {
   );
 }
 
+const manualCalculators = new Set(["/numbers/randomNumber"]);
+
 function CalculatorTool({
   definition,
   tool,
@@ -1127,8 +1176,16 @@ function CalculatorTool({
       ),
     [definition]
   );
+  const live = !manualCalculators.has(tool.url);
   const [values, setValues] = useState<Record<string, string>>(initialValues);
-  const [result, setResult] = useState<ResultLine[] | string | null>(null);
+  const [manualResult, setManualResult] = useState<ResultLine[] | string | null>(null);
+  const isComplete = definition.fields.every((field) => field.kind === "select" || values[field.name]?.trim());
+  const liveResult = useMemo(
+    () => (live && isComplete ? definition.calculate(values) : null),
+    [definition, isComplete, live, values]
+  );
+  const result = live ? liveResult : manualResult;
+  const isDirty = definition.fields.some((field) => values[field.name] !== initialValues[field.name]);
   const { entries, clearHistory } = useRememberResultHistory({
     enabled: historyToolUrls.has(tool.url),
     result,
@@ -1141,30 +1198,50 @@ function CalculatorTool({
       <form
         onSubmit={(event) => {
           event.preventDefault();
-          if (definition.fields.some((field) => field.kind !== "select" && !values[field.name]?.trim())) {
-            setResult("برای محاسبه، همه فیلدها را کامل کنید.");
+          if (live) return;
+          if (!isComplete) {
+            setManualResult("برای محاسبه، همه فیلدها را کامل کنید.");
             return;
           }
-          setResult(definition.calculate(values));
+          setManualResult(definition.calculate(values));
         }}
       >
         <div className="tool-field-grid">
-          {definition.fields.map((field) => (
+          {definition.fields.map((field, index) => (
             <FieldControl
               key={field.name}
               field={field}
+              autoFocus={index === 0}
               value={values[field.name] ?? ""}
               onChange={(value) => {
                 setValues((current) => ({ ...current, [field.name]: value }));
-                setResult(null);
+                if (!live) setManualResult(null);
               }}
             />
           ))}
         </div>
-        <Button type="submit" className="bn632-hover">
-          محاسبه نتیجه
-          <ArrowLeft size={17} aria-hidden="true" />
-        </Button>
+        <div className="form-actions">
+          {!live && (
+            <Button type="submit" className="bn632-hover">
+              {result ? "تولید دوباره" : "محاسبه نتیجه"}
+              <ArrowLeft size={17} aria-hidden="true" />
+            </Button>
+          )}
+          {live && <span className="live-hint"><span className="live-dot" aria-hidden="true" />نتیجه همزمان با تایپ محاسبه می‌شود</span>}
+          {isDirty && (
+            <button
+              type="button"
+              className="text-link muted"
+              onClick={() => {
+                setValues(initialValues);
+                setManualResult(null);
+              }}
+            >
+              <RotateCcw size={14} aria-hidden="true" />
+              پاک کردن
+            </button>
+          )}
+        </div>
       </form>
       <ResultBox result={result} title={tool.title} filenameSlug={tool.slug} />
       <ToolHistory
@@ -1181,11 +1258,21 @@ function FieldControl({
   field,
   value,
   onChange,
+  autoFocus = false,
 }: {
   field: Field;
   value: string;
   onChange: (value: string) => void;
+  autoFocus?: boolean;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (autoFocus && window.matchMedia("(pointer: fine)").matches) {
+      inputRef.current?.focus({ preventScroll: true });
+    }
+  }, [autoFocus]);
+
   const id = useId();
 
   return (
@@ -1217,6 +1304,7 @@ function FieldControl({
         />
       ) : (
         <Input
+          ref={inputRef}
           id={id}
           name={field.name}
           value={value}
@@ -1606,68 +1694,6 @@ function NumberBaseSelect({
         </SelectContent>
       </Select>
     </div>
-  );
-}
-
-function CalendarTool() {
-  const current = todayJalaali();
-  const [year, setYear] = useState(String(current.jy));
-  const [month, setMonth] = useState(String(current.jm));
-  const yearId = useId();
-  const monthId = useId();
-  const y = Math.max(1, Math.trunc(parseNumber(year)) || current.jy);
-  const m = Math.min(12, Math.max(1, Math.trunc(parseNumber(month)) || current.jm));
-  const calendar = buildJalaaliMonth(y, m);
-
-  return (
-    <ToolCardShell>
-      <div className="tool-field-grid">
-        <div className="toolbo-field">
-          <Label htmlFor={yearId} className="mb-2 block">سال</Label>
-          <Input
-            id={yearId}
-            name="calendar-year"
-            type="text"
-            inputMode="numeric"
-            autoComplete="off"
-            value={year}
-            onChange={(event) => setYear(event.target.value)}
-            className="tool-input"
-          />
-        </div>
-        <div className="toolbo-field">
-          <Label htmlFor={monthId} className="mb-2 block">ماه</Label>
-          <Select value={String(m)} onValueChange={setMonth}>
-            <SelectTrigger id={monthId} className="tool-input h-10 w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {persianMonths.map((name, index) => (
-                <SelectItem key={name} value={String(index + 1)}>
-                  {name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <div className="tool-calendar" aria-label={`تقویم ${persianMonths[m - 1]} ${toPersianDigits(y)}`}>
-        {["شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه", "چهارشنبه", "پنجشنبه", "جمعه"].map((day) => (
-          <div key={day} className="tool-calendar-weekday">
-            {day}
-          </div>
-        ))}
-        {calendar.cells.map((day, index) => (
-          <div
-            key={`${day ?? "empty"}-${index}`}
-            className={cn("tool-calendar-day", !day && "is-empty", index % 7 === 6 && "is-friday", day === current.jd && m === current.jm && y === current.jy && "is-today")}
-            aria-current={day === current.jd && m === current.jm && y === current.jy ? "date" : undefined}
-          >
-            {day ? toPersianDigits(day) : ""}
-          </div>
-        ))}
-      </div>
-    </ToolCardShell>
   );
 }
 
@@ -2413,48 +2439,28 @@ function BinaryTool() {
 }
 
 function ToolTrustMetadata({ metadata }: { metadata?: ToolMetadata }) {
-  if (
-    !metadata ||
-    (!metadata.status &&
-      !metadata.lastUpdated &&
-      !metadata.sourceLabel &&
-      !metadata.limitations?.length)
-  ) {
-    return null;
-  }
-
   const statusLabel =
-    metadata.status === "stable"
-      ? "پایدار"
-      : metadata.status === "beta"
-        ? "آزمایشی"
-        : "نیازمند بازبینی";
+    metadata?.status === "beta"
+      ? "آزمایشی"
+      : metadata?.status === "needs-review"
+        ? "در حال بازبینی"
+        : "پایدار";
 
   return (
-    <section className="tool-trust">
-      <div className="workspace-sidebar-title"><Info size={17} aria-hidden="true" /><h2>درباره نتیجه</h2></div>
-      {metadata.status && (
-        <div>
-          <span>وضعیت: </span>
-          <strong>{statusLabel}</strong>
-        </div>
-      )}
-      {metadata.lastUpdated && (
-        <div>
-          <span>بروزرسانی: </span>
-          <strong><bdi>{toPersianDigits(metadata.lastUpdated)}</bdi></strong>
-        </div>
-      )}
-      {metadata.sourceLabel && metadata.sourceUrl && (
-        <a href={metadata.sourceUrl} target="_blank" rel="noreferrer">
-          {metadata.sourceLabel}
+    <section className="sidebar-card tool-trust">
+      <h2 className="sidebar-title">درباره این ابزار</h2>
+      <ul className="trust-list">
+        <li><ShieldCheck size={16} aria-hidden="true" />محاسبه در مرورگر شما؛ اطلاعاتی ارسال نمی‌شود.</li>
+        <li><Check size={16} aria-hidden="true" />وضعیت: {statusLabel}</li>
+        {metadata?.lastUpdated && (
+          <li><RotateCcw size={16} aria-hidden="true" />به‌روزرسانی: <bdi>{toPersianDigits(metadata.lastUpdated)}</bdi></li>
+        )}
+      </ul>
+      {metadata?.sourceLabel && metadata.sourceUrl && (
+        <a className="sidebar-more" href={metadata.sourceUrl} target="_blank" rel="noreferrer">
+          منبع: {metadata.sourceLabel}
         </a>
       )}
-      {metadata.limitations?.slice(0, 1).map((item) => (
-        <div key={item} className="tool-trust-note">
-          {item}
-        </div>
-      ))}
     </section>
   );
 }
@@ -2471,54 +2477,37 @@ function ToolExplainer({
     (!metadata.method &&
       !metadata.formula &&
       !metadata.examples?.length &&
-      !metadata.limitations?.length &&
-      !metadata.relatedTools?.length)
+      !metadata.limitations?.length)
   ) {
     return null;
   }
 
-  const related = metadata.relatedTools
-    ?.map((url) => allTools.find((item) => item.url === url))
-    .filter((item): item is ToolWithCategory => Boolean(item));
-
   return (
-    <section className="tool-explainer" aria-label={`توضیح ${tool.title}`}>
-      <div className="tool-subheading">درباره این ابزار</div>
+    <section className="tool-explainer" aria-labelledby="tool-explainer-title">
+      <h2 id="tool-explainer-title">{tool.title.trim()} چطور کار می‌کند؟</h2>
+      {metadata.method && <p className="tool-explainer-lead">{metadata.method}</p>}
       <div className="tool-explainer-grid">
-        {metadata.method && (
-          <div>
-            <strong>روش</strong>
-            <p>{metadata.method}</p>
-          </div>
-        )}
         {metadata.formula && (
           <div>
-            <strong>فرمول</strong>
-            <p dir="ltr">{metadata.formula}</p>
+            <h3>فرمول</h3>
+            <p className="formula">{metadata.formula}</p>
           </div>
         )}
-        {metadata.examples?.slice(0, 1).map((example) => (
+        {metadata.examples?.map((example) => (
           <div key={example.label}>
-            <strong>مثال: {example.label}</strong>
+            <h3>مثال: {example.label}</h3>
             <p>{example.expectedOutputSummary}</p>
           </div>
         ))}
         {metadata.limitations?.length ? (
           <div>
-            <strong>محدودیت</strong>
-            <p>{metadata.limitations[0]}</p>
+            <h3>نکته‌ها و محدودیت‌ها</h3>
+            <ul>
+              {metadata.limitations.map((item) => <li key={item}>{item}</li>)}
+            </ul>
           </div>
         ) : null}
       </div>
-      {related && related.length > 0 && (
-        <div className="tool-explainer-related">
-          {related.map((item) => (
-            <Link key={item.url} href={item.url}>
-              {item.title}
-            </Link>
-          ))}
-        </div>
-      )}
     </section>
   );
 }

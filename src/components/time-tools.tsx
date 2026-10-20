@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useState } from "react";
-import { CalendarPlus, Check, RotateCcw } from "lucide-react";
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { ResultActions } from "@/components/result-actions";
 import { TodayDashboard } from "@/components/today-dashboard";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ import {
   getCountdownPresets,
   getDefaultCountdownDate,
   getEventsForDate,
+  getEventsForJalaaliDate,
   getFixedHolidayRows,
   getJalaaliDateLabel,
   getTimeZoneDifferenceMinutes,
@@ -42,7 +43,9 @@ import {
   formatNumber,
   gregorianDateFromInput,
   gregorianToJalaaliDate,
+  jalaaliToGregorianDate,
   parseNumber,
+  persianMonths,
   toPersianDigits,
 } from "@/lib/tool-utils";
 
@@ -653,6 +656,151 @@ export function CountdownTool() {
         ))}
       </div>
       <DailyResultBox result={result} title="شمارش معکوس" filenameSlug="countdown" />
+    </div>
+  );
+}
+
+const calendarWeekdays = ["ش", "ی", "د", "س", "چ", "پ", "ج"];
+const gregorianMonthFormatter = new Intl.DateTimeFormat("fa-IR-u-ca-gregory", { month: "long", year: "numeric" });
+const fullDateFormatter = new Intl.DateTimeFormat("fa-IR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+type CalendarCursor = { jy: number; jm: number };
+
+function shiftMonth({ jy, jm }: CalendarCursor, delta: number): CalendarCursor {
+  const index = jy * 12 + (jm - 1) + delta;
+  return { jy: Math.floor(index / 12), jm: (index % 12) + 1 };
+}
+
+function describeOffset(days: number) {
+  if (days === 0) return "امروز";
+  if (days === 1) return "فردا";
+  if (days === -1) return "دیروز";
+  return days > 0 ? `${toPersianDigits(days)} روز دیگر` : `${toPersianDigits(-days)} روز پیش`;
+}
+
+export function CalendarTool() {
+  const now = useLiveNow();
+  const today = now ? addCalendarDays(now, 0) : null;
+  const todayJ = today ? gregorianToJalaaliDate(today) : null;
+  const [cursor, setCursor] = useState<CalendarCursor | null>(null);
+  const [selected, setSelected] = useState<Date | null>(null);
+
+  if (!today || !todayJ) {
+    return <div className="jcal jcal-loading" aria-busy="true" />;
+  }
+
+  const view = cursor ?? { jy: todayJ.jy, jm: todayJ.jm };
+  const first = jalaaliToGregorianDate(view.jy, view.jm, 1) ?? today;
+  const offset = (first.getDay() + 1) % 7;
+  const days: Date[] = [];
+  for (let day = 0; ; day += 1) {
+    const date = addCalendarDays(first, day);
+    if (gregorianToJalaaliDate(date).jm !== view.jm) break;
+    days.push(date);
+  }
+  const last = days[days.length - 1];
+  const gregorianSpan = [gregorianMonthFormatter.format(first), gregorianMonthFormatter.format(last)]
+    .filter((label, index, all) => all.indexOf(label) === index)
+    .join(" – ");
+  const active = selected ?? (view.jy === todayJ.jy && view.jm === todayJ.jm ? today : first);
+  const activeKey = active.getTime();
+  const activeJ = gregorianToJalaaliDate(active);
+  const activeEvents = getEventsForDate(active);
+  const offsetFromToday = Math.round((activeKey - today.getTime()) / 86400000);
+  const monthEvents = days.flatMap((date, index) =>
+    getEventsForJalaaliDate(view.jm, index + 1).map((event) => ({ ...event, date }))
+  );
+  const isCurrentMonth = view.jy === todayJ.jy && view.jm === todayJ.jm;
+
+  const goTo = (next: CalendarCursor) => { setCursor(next); setSelected(null); };
+
+  return (
+    <div className="jcal">
+      <div className="jcal-board">
+        <header className="jcal-head">
+          <div>
+            <h2>{persianMonths[view.jm - 1]} <span>{toPersianDigits(view.jy)}</span></h2>
+            <p>{gregorianSpan}</p>
+          </div>
+          <div className="jcal-nav">
+            {!isCurrentMonth && (
+              <button type="button" className="jcal-today" onClick={() => goTo({ jy: todayJ.jy, jm: todayJ.jm })}>امروز</button>
+            )}
+            <button type="button" className="icon-button" aria-label="ماه قبل" onClick={() => goTo(shiftMonth(view, -1))}>
+              <ChevronRight size={20} aria-hidden="true" />
+            </button>
+            <button type="button" className="icon-button" aria-label="ماه بعد" onClick={() => goTo(shiftMonth(view, 1))}>
+              <ChevronLeft size={20} aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+
+        <div className="jcal-grid" role="grid" aria-label={`${persianMonths[view.jm - 1]} ${toPersianDigits(view.jy)}`}>
+          {calendarWeekdays.map((day) => (
+            <div key={day} className="jcal-weekday" role="columnheader">{day}</div>
+          ))}
+          {Array.from({ length: offset }, (_, index) => <div key={`pad-${index}`} aria-hidden="true" />)}
+          {days.map((date, index) => {
+            const events = getEventsForJalaaliDate(view.jm, index + 1);
+            const holiday = date.getDay() === 5 || events.some((event) => event.type === "holiday");
+            const isToday = date.getTime() === today.getTime();
+            return (
+              <button
+                key={date.getTime()}
+                type="button"
+                role="gridcell"
+                className={cn("jcal-day", holiday && "is-holiday", isToday && "is-today", date.getTime() === activeKey && "is-selected")}
+                aria-selected={date.getTime() === activeKey}
+                aria-current={isToday ? "date" : undefined}
+                aria-label={`${fullDateFormatter.format(date)}${events.length ? `، ${events.map((event) => event.title).join("، ")}` : ""}`}
+                onClick={() => setSelected(date)}
+              >
+                <span className="jcal-day-num">{toPersianDigits(index + 1)}</span>
+                <span className="jcal-day-greg">{date.getDate()}</span>
+                {events.length > 0 && <span className={cn("jcal-dot", events.some((event) => event.type === "holiday") && "is-holiday")} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <aside className="jcal-side" aria-live="polite">
+        <div className="jcal-detail">
+          <span className="jcal-detail-offset">{describeOffset(offsetFromToday)}</span>
+          <strong>{toPersianDigits(activeJ.jd)} {persianMonths[activeJ.jm - 1]} {toPersianDigits(activeJ.jy)}</strong>
+          <dl>
+            <div><dt>روز هفته</dt><dd>{describeDate(active).weekday}</dd></div>
+            <div><dt>میلادی</dt><dd dir="ltr">{active.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</dd></div>
+            <div><dt>قمری</dt><dd>{formatIslamic(active)}</dd></div>
+          </dl>
+          {activeEvents.length > 0 && (
+            <ul className="jcal-detail-events">
+              {activeEvents.map((event) => (
+                <li key={event.title} className={cn(event.type === "holiday" && "is-holiday")}>
+                  {event.title}{event.type === "holiday" && <small>تعطیل</small>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div className="jcal-month-events">
+          <h3>مناسبت‌های {persianMonths[view.jm - 1]}</h3>
+          {monthEvents.length > 0 ? (
+            <ul>
+              {monthEvents.map((event) => (
+                <li key={`${event.day}-${event.title}`}>
+                  <button type="button" onClick={() => setSelected(event.date)} className={cn(event.type === "holiday" && "is-holiday")}>
+                    <span>{toPersianDigits(event.day)}</span>{event.title}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p>مناسبت ثابتی در این ماه ثبت نشده است.</p>
+          )}
+        </div>
+      </aside>
     </div>
   );
 }

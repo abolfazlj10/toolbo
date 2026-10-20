@@ -1384,3 +1384,14 @@ Recommended first implementation slice:
 7. Add swap button and all-units table for conversions.
 
 This slice creates visible value quickly while setting up later work cleanly.
+
+## Change Log: UX Flow Redesign (2026-10-20)
+
+- Header: category mega menu showing each category's top tools, a persistent search trigger (`⌘K` / `/`), a saved-tools counter, and a touch-first mobile drawer.
+- Search: command palette with recent and popular tools shown before typing, grouped results, keyboard hints, and a saved-tools tab.
+- Home: a hero search with live suggestions comes first, then quick links, recent and saved tools for returning users, popular tools, category cards listing their top tools, value props, and a full A–Z directory.
+- Category pages: a header with description and count, pill navigation between categories, editor's picks sorted first, and search inside the category.
+- Tool pages: compact header with share and save buttons, live results for calculators (except random generators), a sticky sidebar of related tools that prefers metadata-defined relations, and a "how it works" section with method, formula, examples and limitations.
+- Footer: full site map (categories, popular tools, the creator's other projects).
+- SEO: `sitemap.xml`, `robots.txt`, canonical URLs, Open Graph tags, and WebApplication + Breadcrumb JSON-LD on every tool page. Set `NEXT_PUBLIC_SITE_URL` before deploying.
+- Remaining: analytics events, per-tool FAQ content, and source/update metadata for every rule-based tool.

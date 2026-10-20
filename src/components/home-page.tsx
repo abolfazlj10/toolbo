@@ -1,53 +1,62 @@
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
-import { HomeTools } from "@/components/home-tools";
-import { categories } from "@/lib/tool-data";
+import { ArrowLeft } from "lucide-react";
+import { HomeSearch } from "@/components/home-tools";
+import { RecentToolsSection } from "@/components/recent-tools";
+import { allTools, categories } from "@/lib/tool-data";
 import { getCategoryIcon } from "@/lib/category-icons";
-
-const categoryLabels: Record<string, string> = {
-  "/time": "تاریخ و زمان",
-  "/fiscal": "پول و وام",
-  "/numbers": "درصد و اعداد",
-  "/conversions": "تبدیل واحدها",
-  "/health": "سلامت",
-  "/math": "ریاضی",
-  "/technology": "فناوری",
-  "/text": "متن",
-  "/other": "سایر ابزارها",
-};
+import { getToolIcon } from "@/lib/tool-icons";
+import { getCategoryLabel, popularTools } from "@/lib/site";
+import { toPersianDigits } from "@/lib/tool-utils";
 
 export function HomePage() {
   return (
     <div className="home-page">
-      <div className="container_m home-container">
-        <HomeTools />
+      <section className="home-hero" aria-labelledby="hero-title">
+        <div className="container_m hero-inner">
+          <h1 id="hero-title">هر محاسبه‌ای، در چند ثانیه<span className="brand-period">.</span></h1>
+          <p className="hero-lead">{toPersianDigits(allTools.length)} ابزار رایگان فارسی؛ بدون ثبت‌نام، بدون تبلیغ.</p>
+          <HomeSearch />
+        </div>
+      </section>
 
-        <nav className="home-categories" id="categories" aria-label="دسته‌بندی ابزارها">
-          <h2>دسته‌بندی ابزارها</h2>
-          <div className="home-category-grid">
+      <div className="container_m home-body">
+        <RecentToolsSection />
+
+        <section className="home-section" id="popular" aria-labelledby="popular-title">
+          <h2 id="popular-title" className="home-label">پرکاربردها</h2>
+          <ul className="popular-list">
+            {popularTools.slice(0, 6).map(tool => {
+              const Icon = getToolIcon(tool.url);
+              return (
+                <li key={tool.url}>
+                  <Link href={tool.url} className="popular-row" data-category={tool.categorySlug}>
+                    <span className="tile-icon small" aria-hidden="true"><Icon size={17} strokeWidth={1.8} /></span>
+                    <span className="popular-copy"><strong>{tool.title}</strong><small>{tool.sub}</small></span>
+                    <ArrowLeft className="popular-arrow" size={16} aria-hidden="true" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+
+        <section className="home-section" aria-labelledby="categories-title">
+          <h2 id="categories-title" className="home-label">دسته‌بندی‌ها</h2>
+          <ul className="category-chips">
             {categories.map(category => {
               const Icon = getCategoryIcon(category.url);
-              return <Link href={category.url} key={category.url} className="home-category">
-                <Icon size={18} strokeWidth={1.7} aria-hidden="true" />
-                <span>{categoryLabels[category.url] ?? category.title}</span>
-              </Link>;
+              return (
+                <li key={category.url}>
+                  <Link href={category.url} data-category={category.url.slice(1)}>
+                    <Icon size={16} strokeWidth={1.8} aria-hidden="true" />
+                    {getCategoryLabel(category.url)}
+                    <small>{toPersianDigits(category.item.length)}</small>
+                  </Link>
+                </li>
+              );
             })}
-          </div>
-        </nav>
-
-        <details className="home-all-tools" id="all-tools">
-          <summary>فهرست کامل ابزارها <ChevronDown size={17} aria-hidden="true" /></summary>
-          <div className="home-all-grid">
-            {categories.map(category => (
-              <section key={category.url} aria-labelledby={`home-category-${category.url.slice(1)}`}>
-                <h3 id={`home-category-${category.url.slice(1)}`}>{categoryLabels[category.url] ?? category.title}</h3>
-                <ul>{category.item.map(tool => (
-                  <li key={tool.url}><Link href={tool.url}>{tool.title}</Link></li>
-                ))}</ul>
-              </section>
-            ))}
-          </div>
-        </details>
+          </ul>
+        </section>
       </div>
     </div>
   );
